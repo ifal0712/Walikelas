@@ -58,7 +58,7 @@ import { CommunicationView } from './components/CommunicationView';
 import { WelfareView } from './components/WelfareView';
 import { ReportsView } from './components/ReportsView';
 import { AIAssistantModal } from './components/AIAssistantModal';
-import { AdminLoginModal } from './components/AdminLoginModal';
+import { UnifiedLoginModal } from './components/UnifiedLoginModal';
 import { AdminPortal } from './components/AdminPortal';
 import { MenuHubCards } from './components/MenuHubCards';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -98,13 +98,14 @@ export default function App() {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiInitialPrompt, setAiInitialPrompt] = useState('');
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [customAdminProfile, setCustomAdminProfile] = useState<UserProfile | null>(null);
+  const [customStudentProfile, setCustomStudentProfile] = useState<UserProfile | null>(null);
   const [isAdminPortalView, setIsAdminPortalView] = useState(false);
   const [extraClasses, setExtraClasses] = useState<Classroom[]>([]);
 
   const isEffectiveAdmin = isUserAdmin(currentUser) || !!customAdminProfile;
-  const effectiveUser = customAdminProfile || currentUser;
+  const effectiveUser = customAdminProfile || customStudentProfile || currentUser;
 
   // 1. Auth Listener
   useEffect(() => {
@@ -217,8 +218,24 @@ Kasus Kesejahteraan Aktif: ${welfareCases.filter(w => w.status !== 'Selesai').le
 Prestasi: ${achievements.length}
   `.trim();
 
+  // Handle Student Login from Unified Portal
+  const handleStudentLogin = (st: Student) => {
+    const studentProfile: UserProfile = {
+      id: `student_${st.id}`,
+      email: `${st.nisn}@siswa.smkn1sidayu.sch.id`,
+      displayName: st.name,
+      schoolName: 'SMKN 1 Sidayu',
+      role: 'siswa',
+      nisn: st.nisn,
+      studentId: st.id,
+      createdAt: new Date().toISOString()
+    };
+    setCustomStudentProfile(studentProfile);
+    setSelectedStudentForModal(st);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] overflow-x-hidden">
       
       {/* Global Header */}
       <Header
@@ -227,10 +244,11 @@ Prestasi: ${achievements.length}
         onSelectClass={setCurrentClass}
         user={effectiveUser}
         isFirebaseConnected={isFirebaseConnected}
-        onLogin={loginWithGoogle}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
         onLogout={() => {
           logoutUser();
           setCustomAdminProfile(null);
+          setCustomStudentProfile(null);
           setIsAdminPortalView(false);
         }}
         onOpenAI={() => {
@@ -240,13 +258,40 @@ Prestasi: ${achievements.length}
         isAdmin={isEffectiveAdmin}
         isAdminView={isAdminPortalView}
         onToggleAdminView={() => setIsAdminPortalView(!isAdminPortalView)}
-        onOpenAdminLogin={() => setIsAdminModalOpen(true)}
         activeTab={activeTab}
         onGoToMenuHub={() => setActiveTab('menu_hub')}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Main Content Area: Ukuran otomatis menyesuaikan layar */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 transition-all">
+        
+        {/* Banner Khusus jika Siswa / Wali Murid Sedang Login */}
+        {effectiveUser?.role === 'siswa' && (
+          <div className="mb-5 p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                {effectiveUser.displayName[0]}
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-indigo-900">
+                  Selamat Datang, {effectiveUser.displayName}!
+                </h4>
+                <p className="text-[11px] sm:text-xs text-indigo-700 leading-relaxed">
+                  Anda login sebagai Siswa / Wali Murid (NISN: {effectiveUser.nisn || '-'}). Anda dapat melihat ringkasan presensi dan evaluasi belajar Anda.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const st = students.find(s => s.id === effectiveUser.studentId);
+                if (st) setSelectedStudentForModal(st);
+              }}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-xs transition-all shrink-0"
+            >
+              Lihat Rapor Siswa
+            </button>
+          </div>
+        )}
         
         {isAdminPortalView ? (
           <AdminPortal
@@ -528,18 +573,19 @@ Prestasi: ${achievements.length}
         contextDataSummary={contextSummary}
       />
 
-      {/* Admin Login Modal */}
-      <AdminLoginModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
+      {/* Unified Login Modal ("Masuk Akun" dan "Login Siswa" dijadikan 1) */}
+      <UnifiedLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
         onGoogleLogin={async () => {
           await loginWithGoogle();
-          setIsAdminPortalView(true);
         }}
         onPasskeyLogin={profile => {
           setCustomAdminProfile(profile);
           setIsAdminPortalView(true);
         }}
+        onStudentLogin={handleStudentLogin}
+        students={students}
         currentUser={effectiveUser}
       />
 

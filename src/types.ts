@@ -213,7 +213,9 @@ export interface UserProfile {
   displayName: string;
   schoolName?: string;
   nip?: string;
-  role: 'wali_kelas' | 'admin';
+  nisn?: string;
+  studentId?: string;
+  role: 'wali_kelas' | 'admin' | 'siswa';
   createdAt: string;
   updatedAt?: string;
 }
