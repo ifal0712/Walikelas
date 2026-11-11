@@ -108,24 +108,43 @@ export async function loginWithGoogle(): Promise<User> {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
+    const isAdminEmail = user.email === 'alamifal@smkn1sidayu.sch.id';
+
     // Sync user profile in Firestore
     const userRef = doc(db, 'users', user.uid);
     const userProfile: UserProfile = {
       id: user.uid,
       email: user.email || '',
-      displayName: user.displayName || 'Wali Kelas',
+      displayName: user.displayName || (isAdminEmail ? 'Kepala Sekolah / Admin' : 'Wali Kelas'),
       schoolName: 'SMKN 1 Sidayu',
-      role: 'wali_kelas',
+      role: isAdminEmail ? 'admin' : 'wali_kelas',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     await setDoc(userRef, userProfile, { merge: true });
+
+    if (isAdminEmail) {
+      await setDoc(doc(db, 'admins', user.uid), {
+        id: user.uid,
+        email: user.email,
+        displayName: user.displayName || 'Administrator Utama',
+        role: 'super_admin',
+        schoolName: 'SMKN 1 Sidayu',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
 
     return user;
   } catch (error) {
     console.error('Google Sign In Error:', error);
     throw error;
   }
+}
+
+export function isUserAdmin(profile: UserProfile | { email?: string | null; role?: string } | null): boolean {
+  if (!profile) return false;
+  return profile.email === 'alamifal@smkn1sidayu.sch.id' || profile.role === 'admin' || profile.role === 'super_admin';
 }
 
 export async function logoutUser(): Promise<void> {

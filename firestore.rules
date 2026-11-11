@@ -24,7 +24,24 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // Bootstrapped Admin according to skill: runtime user email or document in /admins/
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'alamifal@smkn1sidayu.sch.id' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
     // Entity Validation Helpers
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['id', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 128 &&
+             data.role in ['super_admin', 'admin_kesiswaan', 'admin_kurikulum', 'kepala_sekolah'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
     function isValidUser(data) {
       return data.keys().hasAll(['id', 'email', 'displayName', 'role', 'createdAt']) &&
              data.id is string && data.id.size() <= 128 &&
@@ -159,102 +176,112 @@ service cloud.firestore {
              data.createdAt is string && data.createdAt.size() <= 50;
     }
 
+    // 0. Admins collection
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidId(adminId) && (isAdmin() || (request.auth.token.email == 'alamifal@smkn1sidayu.sch.id' && request.auth.uid == adminId)) && isValidAdmin(incoming());
+      allow update: if isAdmin() && isValidId(adminId) && isValidAdmin(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin() && request.auth.token.email == 'alamifal@smkn1sidayu.sch.id';
+    }
+
     // 1. Users collection
     match /users/{userId} {
-      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
-      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming());
-      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == existing().createdAt;
-      allow delete: if false;
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin()) && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin()) && isValidUser(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin();
     }
 
     // 2. Classes collection
     match /classes/{classId} {
-      allow get: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(classId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(classId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 3. Students collection
     match /students/{studentId} {
-      allow get: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(studentId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(studentId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 4. Attendance collection
     match /attendance/{attendanceId} {
-      allow get: if isSignedIn() && isValidId(attendanceId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(attendanceId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(attendanceId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(attendanceId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 5. Grades collection
     match /grades/{gradeId} {
-      allow get: if isSignedIn() && isValidId(gradeId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(gradeId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(gradeId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(gradeId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 6. Character logs collection
     match /characterLogs/{logId} {
-      allow get: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(logId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(logId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 7. Discipline logs collection
     match /disciplineLogs/{logId} {
-      allow get: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(logId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(logId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 8. Achievements collection
     match /achievements/{achievementId} {
-      allow get: if isSignedIn() && isValidId(achievementId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(achievementId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(achievementId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(achievementId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 9. Communications collection
     match /communications/{commId} {
-      allow get: if isSignedIn() && isValidId(commId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(commId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(commId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(commId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 10. Reports collection
     match /reports/{reportId} {
-      allow get: if isSignedIn() && isValidId(reportId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(reportId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(reportId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(reportId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
 
     // 11. Welfare cases collection
     match /welfareCases/{caseId} {
-      allow get: if isSignedIn() && isValidId(caseId) && existing().teacherId == request.auth.uid;
-      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && incoming().teacherId == request.auth.uid;
-      allow update: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
-      allow delete: if isSignedIn() && isValidId(caseId) && existing().teacherId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(caseId) && (existing().teacherId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && (incoming().teacherId == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && (existing().teacherId == request.auth.uid || isAdmin()) && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(caseId) && (existing().teacherId == request.auth.uid || isAdmin());
     }
   }
 }

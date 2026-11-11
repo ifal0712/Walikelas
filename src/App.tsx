@@ -41,7 +41,8 @@ import {
   saveRecord,
   removeRecord,
   subscribeToTeacherData,
-  seedDemoDataForTeacher
+  seedDemoDataForTeacher,
+  isUserAdmin
 } from './services/firebase';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -55,6 +56,8 @@ import { CommunicationView } from './components/CommunicationView';
 import { WelfareView } from './components/WelfareView';
 import { ReportsView } from './components/ReportsView';
 import { AIAssistantModal } from './components/AIAssistantModal';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { AdminPortal } from './components/AdminPortal';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -87,25 +90,36 @@ export default function App() {
   const [reports, setReports] = useState<ClassReport[]>([]);
   const [welfareCases, setWelfareCases] = useState<WelfareCase[]>([]);
 
-  // Modals
+  // Modals & Admin State
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiInitialPrompt, setAiInitialPrompt] = useState('');
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [customAdminProfile, setCustomAdminProfile] = useState<UserProfile | null>(null);
+  const [isAdminPortalView, setIsAdminPortalView] = useState(false);
+  const [extraClasses, setExtraClasses] = useState<Classroom[]>([]);
+
+  const isEffectiveAdmin = isUserAdmin(currentUser) || !!customAdminProfile;
+  const effectiveUser = customAdminProfile || currentUser;
 
   // 1. Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       if (user) {
+        const isAdminEmail = user.email === 'alamifal@smkn1sidayu.sch.id';
         const profile: UserProfile = {
           id: user.uid,
           email: user.email || '',
-          displayName: user.displayName || 'Wali Kelas',
+          displayName: user.displayName || (isAdminEmail ? 'Kepala Sekolah / Admin' : 'Wali Kelas'),
           schoolName: 'SMKN 1 Sidayu',
-          role: 'wali_kelas',
+          role: isAdminEmail ? 'admin' : 'wali_kelas',
           createdAt: new Date().toISOString()
         };
         setCurrentUser(profile);
         setIsFirebaseConnected(true);
+        if (isAdminEmail) {
+          setIsAdminPortalView(true);
+        }
       } else {
         setCurrentUser(null);
       }
@@ -204,19 +218,28 @@ Prestasi: ${achievements.length}
       {/* Global Header */}
       <Header
         currentClass={currentClass}
-        classes={currentClass ? [currentClass] : []}
+        classes={currentClass ? [currentClass, ...extraClasses] : extraClasses}
         onSelectClass={setCurrentClass}
-        user={currentUser}
+        user={effectiveUser}
         isFirebaseConnected={isFirebaseConnected}
         onLogin={loginWithGoogle}
-        onLogout={logoutUser}
+        onLogout={() => {
+          logoutUser();
+          setCustomAdminProfile(null);
+          setIsAdminPortalView(false);
+        }}
         onOpenAI={() => {
           setAiInitialPrompt('');
           setIsAIModalOpen(true);
         }}
+        isAdmin={isEffectiveAdmin}
+        isAdminView={isAdminPortalView}
+        onToggleAdminView={() => setIsAdminPortalView(!isAdminPortalView)}
+        onOpenAdminLogin={() => setIsAdminModalOpen(true)}
       />
 
-      {/* Main Navigation Subheader */}
+      {/* Main Navigation Subheader (Only in Teacher Mode) */}
+      {!isAdminPortalView && (
       <nav className="bg-white border-b border-slate-200 sticky top-16 sm:top-20 z-20 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-2 overflow-x-auto py-2.5 no-scrollbar">
@@ -266,10 +289,42 @@ Prestasi: ${achievements.length}
           </div>
         </div>
       </nav>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         
+        {isAdminPortalView ? (
+          <AdminPortal
+            currentAdmin={effectiveUser || {
+              id: 'admin_default',
+              displayName: 'Kepala Sekolah (Super Admin)',
+              email: 'alamifal@smkn1sidayu.sch.id',
+              role: 'admin',
+              schoolName: 'SMKN 1 Sidayu',
+              createdAt: new Date().toISOString()
+            }}
+            classes={currentClass ? [currentClass, ...extraClasses] : extraClasses}
+            students={students}
+            welfareCases={welfareCases}
+            onSelectClass={cls => {
+              setCurrentClass(cls);
+              setIsAdminPortalView(false);
+            }}
+            onAddClass={newCls => {
+              setExtraClasses(prev => [...prev, newCls]);
+              saveRecord('classes', { ...newCls, teacherId: effectiveUser?.id || 'admin_user' });
+            }}
+            onSwitchToTeacherMode={() => setIsAdminPortalView(false)}
+            onLogoutAdmin={() => {
+              setCustomAdminProfile(null);
+              setIsAdminPortalView(false);
+              logoutUser();
+            }}
+            onOpenAIWithPrompt={handleOpenAIWithPrompt}
+          />
+        ) : (
+          <>
         {/* If no students yet and not seeding, show friendly intro */}
         {students.length === 0 && !isSeeding && (
           <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -444,6 +499,8 @@ Prestasi: ${achievements.length}
             }}
           />
         )}
+        </>
+        )}
       </main>
 
       {/* Footer */}
@@ -463,6 +520,21 @@ Prestasi: ${achievements.length}
         onClose={() => setIsAIModalOpen(false)}
         initialPrompt={aiInitialPrompt}
         contextDataSummary={contextSummary}
+      />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onGoogleLogin={async () => {
+          await loginWithGoogle();
+          setIsAdminPortalView(true);
+        }}
+        onPasskeyLogin={profile => {
+          setCustomAdminProfile(profile);
+          setIsAdminPortalView(true);
+        }}
+        currentUser={effectiveUser}
       />
     </div>
   );

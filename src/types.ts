@@ -218,6 +218,17 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
+export interface AdminProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  role: 'super_admin' | 'admin_kesiswaan' | 'admin_kurikulum' | 'kepala_sekolah';
+  schoolName: string;
+  nip?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface PriorityStudent {
   student: Student;
   category: 'Akademik' | 'Karakter' | 'Kehadiran' | 'Kedisiplinan';

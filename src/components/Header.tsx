@@ -21,6 +21,10 @@ interface HeaderProps {
   onLogin: () => void;
   onLogout: () => void;
   onOpenAI: () => void;
+  isAdmin: boolean;
+  isAdminView: boolean;
+  onToggleAdminView: () => void;
+  onOpenAdminLogin: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,7 +35,11 @@ export const Header: React.FC<HeaderProps> = ({
   isFirebaseConnected,
   onLogin,
   onLogout,
-  onOpenAI
+  onOpenAI,
+  isAdmin,
+  isAdminView,
+  onToggleAdminView,
+  onOpenAdminLogin
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
@@ -49,7 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
                   WaliKelas<span className="text-emerald-600 font-bold">Pro</span>
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  Kemendikbudristek Edu
+                  {isAdminView ? 'Mode Pengawas / Admin' : 'Kemendikbudristek Edu'}
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
@@ -58,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Classroom Selector */}
+          {/* Classroom Selector (Hidden in Admin Portal View or compact) */}
           <div className="hidden md:flex items-center gap-2 bg-slate-100/90 p-1.5 rounded-xl border border-slate-200">
             <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-600">
               <School className="w-3.5 h-3.5 text-emerald-600" />
@@ -99,10 +107,31 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Group */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Admin Portal Toggle Button if User is Admin */}
+            {isAdmin ? (
+              <button
+                onClick={onToggleAdminView}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-extrabold rounded-xl transition-all shadow-2xs ${
+                  isAdminView
+                    ? 'bg-slate-900 text-emerald-400 border border-slate-700'
+                    : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border border-emerald-300'
+                }`}
+              >
+                <span>{isAdminView ? 'Ke Ruang Wali Kelas' : 'Portal Administrator'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAdminLogin}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors"
+              >
+                <span>Login Admin</span>
+              </button>
+            )}
+
             {/* AI Assistant Button */}
             <button
               onClick={onOpenAI}
-              className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-semibold rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-sm hover:shadow-md hover:brightness-105 active:scale-95 transition-all"
             >
               <Sparkles className="w-4 h-4 animate-pulse text-amber-300" />
               <span>Asisten AI</span>
@@ -139,14 +168,16 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center gap-2 pl-1 border-l border-slate-200">
                 <div className="text-right hidden sm:block">
                   <div className="text-xs font-bold text-slate-800 leading-tight">
-                    {user.displayName || 'Wali Kelas'}
+                    {user.displayName || (isAdmin ? 'Admin Sekolah' : 'Wali Kelas')}
                   </div>
                   <div className="text-[11px] text-slate-500 truncate max-w-[140px]">
                     {user.email}
                   </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-bold text-xs flex items-center justify-center ring-2 ring-emerald-200">
-                  {(user.displayName || 'WK')[0]}
+                <div className={`w-8 h-8 rounded-full text-white font-bold text-xs flex items-center justify-center ring-2 ${
+                  isAdmin ? 'bg-slate-900 ring-emerald-400' : 'bg-emerald-700 ring-emerald-200'
+                }`}>
+                  {(user.displayName || 'U')[0]}
                 </div>
                 <button
                   onClick={onLogout}

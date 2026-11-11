@@ -16,6 +16,21 @@
       },
       "required": ["id", "email", "displayName", "role", "createdAt"]
     },
+    "admin": {
+      "title": "Admin",
+      "description": "Administrator profile with elevated school management privileges",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["super_admin", "admin_kesiswaan", "admin_kurikulum", "kepala_sekolah"] },
+        "schoolName": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "displayName", "role", "createdAt"]
+    },
     "classroom": {
       "title": "Classroom",
       "description": "Classroom managed by homeroom teacher",
@@ -232,6 +247,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/user" },
       "description": "Teacher profile authenticated via Google"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/admin" },
+      "description": "Authorized administrator profile with school-wide supervision access"
     },
     "/classes/{classId}": {
       "schema": { "$ref": "#/entities/classroom" },
