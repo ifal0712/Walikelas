@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile of the teacher or homeroom teacher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "schoolName": { "type": "string", "maxLength": 256 },
+        "nip": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["wali_kelas", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "displayName", "role", "createdAt"]
+    },
+    "classroom": {
+      "title": "Classroom",
+      "description": "Classroom managed by homeroom teacher",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "grade": { "type": "string", "maxLength": 30 },
+        "academicYear": { "type": "string", "maxLength": 30 },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "schoolName": { "type": "string", "maxLength": 200 },
+        "major": { "type": "string", "maxLength": 100 },
+        "targetAttendanceRate": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "teacherId", "name", "academicYear", "semester", "createdAt"]
+    },
+    "student": {
+      "title": "Student",
+      "description": "Comprehensive student profile for the classroom",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "nis": { "type": "string", "maxLength": 32 },
+        "nisn": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 150 },
+        "gender": { "type": "string", "enum": ["L", "P"] },
+        "birthPlace": { "type": "string", "maxLength": 100 },
+        "birthDate": { "type": "string", "maxLength": 30 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "emergencyContact": { "type": "string", "maxLength": 100 },
+        "parentName": { "type": "string", "maxLength": 150 },
+        "parentPhone": { "type": "string", "maxLength": 32 },
+        "parentJob": { "type": "string", "maxLength": 100 },
+        "healthHistory": { "type": "string", "maxLength": 500 },
+        "talentsAndInterests": { "type": "string", "maxLength": 500 },
+        "specialNotes": { "type": "string", "maxLength": 1000 },
+        "status": { "type": "string", "enum": ["Aktif", "Mutasi", "Lulus"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "name", "gender", "createdAt"]
+    },
+    "attendance": {
+      "title": "Attendance",
+      "description": "Daily student attendance record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "enum": ["Hadir", "Izin", "Sakit", "Alfa", "Terlambat"] },
+        "lateMinutes": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "status", "createdAt"]
+    },
+    "grade": {
+      "title": "Grade",
+      "description": "Student academic evaluation record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["Tugas", "Ulangan", "PTS", "PAS", "Projek", "Praktikum", "Portofolio"] },
+        "score": { "type": "number" },
+        "semester": { "type": "string", "enum": ["Ganjil", "Genap"] },
+        "date": { "type": "string", "maxLength": 30 },
+        "topic": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "subject", "type", "score", "createdAt"]
+    },
+    "characterLog": {
+      "title": "CharacterLog",
+      "description": "Student character development observation across 10 values",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "valueType": { "type": "string", "enum": ["Religius", "Jujur", "Disiplin", "Tanggung Jawab", "Kerja Sama", "Kepedulian", "Kepemimpinan", "Percaya Diri", "Kemandirian", "Integritas"] },
+        "rating": { "type": "number" },
+        "context": { "type": "string", "maxLength": 200 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "valueType", "rating", "notes", "createdAt"]
+    },
+    "disciplineLog": {
+      "title": "DisciplineLog",
+      "description": "Student conduct, violations, warnings, mentoring, and awards",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "enum": ["Pelanggaran", "Teguran", "Pembinaan", "Penghargaan"] },
+        "level": { "type": "string", "enum": ["Ringan", "Sedang", "Berat"] },
+        "description": { "type": "string", "maxLength": 1000 },
+        "followUpAction": { "type": "string", "maxLength": 1000 },
+        "points": { "type": "number" },
+        "status": { "type": "string", "enum": ["Ditangani", "Dalam Proses", "Selesai"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "category", "level", "description", "createdAt"]
+    },
+    "achievement": {
+      "title": "Achievement",
+      "description": "Student academic and non-academic achievements portfolio",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "enum": ["Akademik", "Non Akademik", "Olahraga", "Seni", "Keagamaan", "Organisasi"] },
+        "title": { "type": "string", "maxLength": 200 },
+        "rank": { "type": "string", "maxLength": 100 },
+        "level": { "type": "string", "enum": ["Sekolah", "Kecamatan", "Kabupaten/Kota", "Provinsi", "Nasional", "Internasional"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "category", "title", "rank", "level", "createdAt"]
+    },
+    "communication": {
+      "title": "Communication",
+      "description": "Communication log with parents, subject teachers, counseling, and school heads",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "channel": { "type": "string", "enum": ["WhatsApp", "Telepon", "Surat Resmi", "Pertemuan Langsung"] },
+        "recipient": { "type": "string", "enum": ["Orang Tua", "Guru Mapel", "Guru BK", "Kesiswaan", "Kepala Sekolah"] },
+        "category": { "type": "string", "enum": ["Informasi", "Apresiasi", "Peringatan", "Undangan", "Rujukan BK", "Koordinasi Mapel"] },
+        "subject": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 3000 },
+        "status": { "type": "string", "enum": ["Draf", "Terkirim", "Selesai"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "channel", "recipient", "category", "content", "status", "createdAt"]
+    },
+    "report": {
+      "title": "Report",
+      "description": "Periodic class condition reports generated by homeroom teacher and AI",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "periodType": { "type": "string", "enum": ["Harian", "Mingguan", "Bulanan", "PTS", "PAS"] },
+        "periodDate": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 200 },
+        "summary": { "type": "string", "maxLength": 3000 },
+        "achievementsSummary": { "type": "string", "maxLength": 2000 },
+        "challenges": { "type": "string", "maxLength": 2000 },
+        "dataAnalysis": { "type": "string", "maxLength": 3000 },
+        "followUp": { "type": "string", "maxLength": 2000 },
+        "recommendations": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "periodType", "periodDate", "title", "summary", "createdAt"]
+    },
+    "welfareCase": {
+      "title": "WelfareCase",
+      "description": "Student welfare monitoring and early intervention system",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 128 },
+        "teacherId": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "triggerCategory": { "type": "string", "enum": ["Penurunan Motivasi", "Kesulitan Belajar", "Konflik Sosial", "Perundungan", "Masalah Emosional"] },
+        "severity": { "type": "string", "enum": ["Waspada", "Perlu Perhatian", "Kritis"] },
+        "indications": { "type": "string", "maxLength": 1500 },
+        "actionRecommendation": { "type": "string", "enum": ["Konsultasi Wali Kelas", "Rujukan Guru BK", "Panggilan Orang Tua", "Koordinasi Tim Kesiswaan"] },
+        "status": { "type": "string", "enum": ["Aktif", "Dalam Pemantauan", "Selesai"] },
+        "notes": { "type": "string", "maxLength": 1500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teacherId", "studentId", "date", "triggerCategory", "severity", "indications", "actionRecommendation", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Teacher profile authenticated via Google"
+    },
+    "/classes/{classId}": {
+      "schema": { "$ref": "#/entities/classroom" },
+      "description": "Classroom managed by homeroom teacher"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/student" },
+      "description": "Student profile data"
+    },
+    "/attendance/{attendanceId}": {
+      "schema": { "$ref": "#/entities/attendance" },
+      "description": "Student daily attendance logs"
+    },
+    "/grades/{gradeId}": {
+      "schema": { "$ref": "#/entities/grade" },
+      "description": "Academic scores and evaluations"
+    },
+    "/characterLogs/{logId}": {
+      "schema": { "$ref": "#/entities/characterLog" },
+      "description": "Observations of the 10 character values"
+    },
+    "/disciplineLogs/{logId}": {
+      "schema": { "$ref": "#/entities/disciplineLog" },
+      "description": "Discipline infractions, mentoring, and awards"
+    },
+    "/achievements/{achievementId}": {
+      "schema": { "$ref": "#/entities/achievement" },
+      "description": "Student portfolio achievements"
+    },
+    "/communications/{commId}": {
+      "schema": { "$ref": "#/entities/communication" },
+      "description": "Communication log with parents, BK, teachers, and school heads"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/report" },
+      "description": "Automated classroom periodic reports"
+    },
+    "/welfareCases/{caseId}": {
+      "schema": { "$ref": "#/entities/welfareCase" },
+      "description": "Student welfare monitoring and early interventions"
+    }
+  }
+}

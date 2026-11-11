@@ -1,0 +1,260 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validation Helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email', 'displayName', 'role', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 128 &&
+             data.role in ['wali_kelas', 'admin'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidClass(data) {
+      return data.keys().hasAll(['id', 'teacherId', 'name', 'academicYear', 'semester', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.academicYear is string && data.academicYear.size() <= 30 &&
+             data.semester in ['Ganjil', 'Genap'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'name', 'gender', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.name is string && data.name.size() <= 150 &&
+             data.gender in ['L', 'P'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidAttendance(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'status', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.status in ['Hadir', 'Izin', 'Sakit', 'Alfa', 'Terlambat'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidGrade(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'subject', 'type', 'score', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.subject is string && data.subject.size() <= 100 &&
+             data.type in ['Tugas', 'Ulangan', 'PTS', 'PAS', 'Projek', 'Praktikum', 'Portofolio'] &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidCharacterLog(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'valueType', 'rating', 'notes', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.valueType in ['Religius', 'Jujur', 'Disiplin', 'Tanggung Jawab', 'Kerja Sama', 'Kepedulian', 'Kepemimpinan', 'Percaya Diri', 'Kemandirian', 'Integritas'] &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.notes is string && data.notes.size() <= 1000 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidDisciplineLog(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'category', 'level', 'description', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.category in ['Pelanggaran', 'Teguran', 'Pembinaan', 'Penghargaan'] &&
+             data.level in ['Ringan', 'Sedang', 'Berat'] &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidAchievement(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'category', 'title', 'rank', 'level', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.category in ['Akademik', 'Non Akademik', 'Olahraga', 'Seni', 'Keagamaan', 'Organisasi'] &&
+             data.title is string && data.title.size() <= 200 &&
+             data.rank is string && data.rank.size() <= 100 &&
+             data.level in ['Sekolah', 'Kecamatan', 'Kabupaten/Kota', 'Provinsi', 'Nasional', 'Internasional'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidCommunication(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'channel', 'recipient', 'category', 'content', 'status', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.channel in ['WhatsApp', 'Telepon', 'Surat Resmi', 'Pertemuan Langsung'] &&
+             data.recipient in ['Orang Tua', 'Guru Mapel', 'Guru BK', 'Kesiswaan', 'Kepala Sekolah'] &&
+             data.category in ['Informasi', 'Apresiasi', 'Peringatan', 'Undangan', 'Rujukan BK', 'Koordinasi Mapel'] &&
+             data.content is string && data.content.size() <= 3000 &&
+             data.status in ['Draf', 'Terkirim', 'Selesai'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'periodType', 'periodDate', 'title', 'summary', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.periodType in ['Harian', 'Mingguan', 'Bulanan', 'PTS', 'PAS'] &&
+             data.periodDate is string && data.periodDate.size() <= 50 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.summary is string && data.summary.size() <= 3000 &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    function isValidWelfareCase(data) {
+      return data.keys().hasAll(['id', 'classId', 'teacherId', 'studentId', 'date', 'triggerCategory', 'severity', 'indications', 'actionRecommendation', 'status', 'createdAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.classId is string && data.classId.size() <= 128 &&
+             data.teacherId is string && data.teacherId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() <= 128 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.triggerCategory in ['Penurunan Motivasi', 'Kesulitan Belajar', 'Konflik Sosial', 'Perundungan', 'Masalah Emosional'] &&
+             data.severity in ['Waspada', 'Perlu Perhatian', 'Kritis'] &&
+             data.indications is string && data.indications.size() <= 1500 &&
+             data.actionRecommendation in ['Konsultasi Wali Kelas', 'Rujukan Guru BK', 'Panggilan Orang Tua', 'Koordinasi Tim Kesiswaan'] &&
+             data.status in ['Aktif', 'Dalam Pemantauan', 'Selesai'] &&
+             data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidUser(incoming()) && incoming().createdAt == existing().createdAt;
+      allow delete: if false;
+    }
+
+    // 2. Classes collection
+    match /classes/{classId} {
+      allow get: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(classId) && isValidClass(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(classId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 3. Students collection
+    match /students/{studentId} {
+      allow get: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(studentId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 4. Attendance collection
+    match /attendance/{attendanceId} {
+      allow get: if isSignedIn() && isValidId(attendanceId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(attendanceId) && isValidAttendance(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(attendanceId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 5. Grades collection
+    match /grades/{gradeId} {
+      allow get: if isSignedIn() && isValidId(gradeId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(gradeId) && isValidGrade(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(gradeId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 6. Character logs collection
+    match /characterLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(logId) && isValidCharacterLog(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 7. Discipline logs collection
+    match /disciplineLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(logId) && isValidDisciplineLog(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(logId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 8. Achievements collection
+    match /achievements/{achievementId} {
+      allow get: if isSignedIn() && isValidId(achievementId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(achievementId) && isValidAchievement(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(achievementId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 9. Communications collection
+    match /communications/{commId} {
+      allow get: if isSignedIn() && isValidId(commId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(commId) && isValidCommunication(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(commId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 10. Reports collection
+    match /reports/{reportId} {
+      allow get: if isSignedIn() && isValidId(reportId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(reportId) && isValidReport(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(reportId) && existing().teacherId == request.auth.uid;
+    }
+
+    // 11. Welfare cases collection
+    match /welfareCases/{caseId} {
+      allow get: if isSignedIn() && isValidId(caseId) && existing().teacherId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && incoming().teacherId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(caseId) && isValidWelfareCase(incoming()) && existing().teacherId == request.auth.uid && incoming().teacherId == existing().teacherId && incoming().createdAt == existing().createdAt;
+      allow delete: if isSignedIn() && isValidId(caseId) && existing().teacherId == request.auth.uid;
+    }
+  }
+}

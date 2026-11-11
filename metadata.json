@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Manajemen Wali Kelas Profesional",
+  "description": "Platform Asisten Wali Kelas Cerdas untuk administrasi terpadu, pemantauan akademik, presensi, perkembangan karakter, disiplin, monitoring kesejahteraan siswa, dan komunikasi orang tua sekolah Indonesia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
