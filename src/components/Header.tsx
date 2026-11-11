@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   GraduationCap,
   Sparkles,
@@ -8,7 +7,9 @@ import {
   LogOut,
   School,
   Calendar,
-  Users
+  Users,
+  LayoutGrid,
+  ArrowLeft
 } from 'lucide-react';
 import { Classroom, UserProfile } from '../types';
 
@@ -25,6 +26,8 @@ interface HeaderProps {
   isAdminView: boolean;
   onToggleAdminView: () => void;
   onOpenAdminLogin: () => void;
+  activeTab: string;
+  onGoToMenuHub: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -39,25 +42,31 @@ export const Header: React.FC<HeaderProps> = ({
   isAdmin,
   isAdminView,
   onToggleAdminView,
-  onOpenAdminLogin
+  onOpenAdminLogin,
+  activeTab,
+  onGoToMenuHub
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-3 sm:gap-4">
           
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+          {/* Logo & Brand (Clickable to return to Menu Utama) */}
+          <div
+            onClick={onGoToMenuHub}
+            className="flex items-center gap-3 cursor-pointer group"
+            title="Klik untuk ke Menu Utama"
+          >
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
               <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-slate-900 tracking-tight text-base sm:text-lg">
+                <span className="font-extrabold text-slate-900 tracking-tight text-base sm:text-lg group-hover:text-emerald-700 transition-colors">
                   WaliKelas<span className="text-emerald-600 font-bold">Pro</span>
                 </span>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                  {isAdminView ? 'Mode Pengawas / Admin' : 'Kemendikbudristek Edu'}
+                  {isAdminView ? 'Mode Pengawas' : 'Kemendikbud Edu'}
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
@@ -125,6 +134,18 @@ export const Header: React.FC<HeaderProps> = ({
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors"
               >
                 <span>Login Admin</span>
+              </button>
+            )}
+
+            {/* Back to Menu Utama button when inside a subpage */}
+            {activeTab !== 'menu_hub' && !isAdminView && (
+              <button
+                onClick={onGoToMenuHub}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold border border-emerald-200 shadow-2xs transition-all active:scale-95"
+                title="Kembali ke Menu Utama"
+              >
+                <LayoutGrid className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline">Menu Utama</span>
               </button>
             )}
 

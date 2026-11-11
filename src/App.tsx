@@ -17,7 +17,9 @@ import {
   FileText,
   CloudCheck,
   RefreshCw,
-  Database
+  Database,
+  LayoutGrid,
+  ArrowLeft
 } from 'lucide-react';
 import {
   Classroom,
@@ -58,11 +60,13 @@ import { ReportsView } from './components/ReportsView';
 import { AIAssistantModal } from './components/AIAssistantModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminPortal } from './components/AdminPortal';
+import { MenuHubCards } from './components/MenuHubCards';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('menu_hub');
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
 
   // Classroom State
@@ -190,6 +194,7 @@ export default function App() {
 
   // Navigation tabs
   const navTabs = [
+    { id: 'menu_hub', label: 'Menu Kartu', icon: LayoutGrid },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Data Siswa', icon: Users, badge: students.length },
     { id: 'attendance', label: 'Presensi', icon: CalendarCheck },
@@ -236,60 +241,9 @@ Prestasi: ${achievements.length}
         isAdminView={isAdminPortalView}
         onToggleAdminView={() => setIsAdminPortalView(!isAdminPortalView)}
         onOpenAdminLogin={() => setIsAdminModalOpen(true)}
+        activeTab={activeTab}
+        onGoToMenuHub={() => setActiveTab('menu_hub')}
       />
-
-      {/* Main Navigation Subheader (Only in Teacher Mode) */}
-      {!isAdminPortalView && (
-      <nav className="bg-white border-b border-slate-200 sticky top-16 sm:top-20 z-20 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between gap-2 overflow-x-auto py-2.5 no-scrollbar">
-            <div className="flex items-center gap-1 sm:gap-2">
-              {navTabs.map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                      isActive
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                        isActive
-                          ? 'bg-white text-emerald-800'
-                          : tab.badgeColor
-                          ? `${tab.badgeColor} text-white`
-                          : 'bg-slate-200 text-slate-800'
-                      }`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Inisialisasi Data Demo Button if students is empty */}
-            {students.length === 0 && (
-              <button
-                onClick={handleSeedData}
-                disabled={isSeeding}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-xs transition-colors shrink-0 disabled:opacity-50"
-              >
-                <Database className="w-3.5 h-3.5" />
-                <span>{isSeeding ? 'Memuat Data...' : 'Muat Data Contoh (XI RPL 1)'}</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </nav>
-      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -325,7 +279,59 @@ Prestasi: ${achievements.length}
           />
         ) : (
           <>
-        {/* If no students yet and not seeding, show friendly intro */}
+            {/* Sub-Page Navigation Bar: Menu is hidden on subpages, easily return to Menu Utama */}
+            {activeTab !== 'menu_hub' && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setActiveTab('menu_hub')}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-bold border border-emerald-200 shadow-2xs transition-all active:scale-95 group"
+                    title="Kembali ke Menu Utama (Tampilan Kartu)"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-emerald-700 group-hover:-translate-x-0.5 transition-transform" />
+                    <span>Kembali ke Menu Utama</span>
+                  </button>
+                  <div className="h-5 w-px bg-slate-200 hidden sm:block" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-extrabold text-slate-900">
+                      {navTabs.find(t => t.id === activeTab)?.label || activeTab}
+                    </span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium hidden md:inline">
+                      {currentClass?.name || 'Kelas XI RPL 1'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenAIWithPrompt(`Berikan rekomendasi tindak lanjut wali kelas untuk modul ${navTabs.find(t => t.id === activeTab)?.label || activeTab} kelas ${currentClass?.name}`)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-all active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="hidden sm:inline">Rekomendasi AI Modul</span>
+                    <span className="sm:hidden">Analisis AI</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 0: Menu Hub Kartu Berkelompok (Primary View After Login) */}
+            {activeTab === 'menu_hub' && (
+              <MenuHubCards
+                classroom={currentClass}
+                students={students}
+                attendance={attendance}
+                grades={grades}
+                characterLogs={characterLogs}
+                disciplineLogs={disciplineLogs}
+                achievements={achievements}
+                welfareCases={welfareCases}
+                onNavigateTab={setActiveTab}
+                onOpenAIWithPrompt={handleOpenAIWithPrompt}
+              />
+            )}
+
+            {/* If no students yet and not seeding, show friendly intro */}
         {students.length === 0 && !isSeeding && (
           <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -536,6 +542,19 @@ Prestasi: ${achievements.length}
         }}
         currentUser={effectiveUser}
       />
+
+      {/* Mobile Android Bottom Navigation */}
+      {!isAdminPortalView && (
+        <MobileBottomNav
+          activeTab={activeTab}
+          onNavigateTab={setActiveTab}
+          onOpenAI={() => {
+            setAiInitialPrompt('');
+            setIsAIModalOpen(true);
+          }}
+          studentCount={students.length}
+        />
+      )}
     </div>
   );
 }
