@@ -11,21 +11,32 @@ import {
   CheckCircle,
   Clock,
   Eye,
+  EyeOff,
   FileText,
   Settings,
   Sparkles,
   ArrowRight,
   X,
   Check,
-  UserPlus
+  UserPlus,
+  KeyRound,
+  Edit2,
+  Trash2,
+  Lock,
+  Search,
+  Filter,
+  CheckCircle2
 } from 'lucide-react';
-import { Classroom, Student, WelfareCase, UserProfile } from '../types';
+import { Classroom, Student, WelfareCase, UserProfile, ManagedUser, UserRoleType } from '../types';
 
 interface AdminPortalProps {
   currentAdmin: UserProfile;
   classes: Classroom[];
   students: Student[];
   welfareCases: WelfareCase[];
+  managedUsers: ManagedUser[];
+  onSaveUser: (user: ManagedUser) => void;
+  onDeleteUser: (userId: string) => void;
   onSelectClass: (c: Classroom) => void;
   onAddClass: (newClass: Classroom) => void;
   onSwitchToTeacherMode: () => void;
@@ -38,13 +49,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   classes,
   students,
   welfareCases,
+  managedUsers,
+  onSaveUser,
+  onDeleteUser,
   onSelectClass,
   onAddClass,
   onSwitchToTeacherMode,
   onLogoutAdmin,
   onOpenAIWithPrompt
 }) => {
-  const [adminTab, setAdminTab] = useState<'overview' | 'classes' | 'teachers' | 'supervision' | 'reports'>('overview');
+  const [adminTab, setAdminTab] = useState<'overview' | 'users' | 'teachers' | 'supervision' | 'reports'>('overview');
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
 
   // New Class Form State
@@ -52,6 +66,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newGrade, setNewGrade] = useState('XI (Sebelas)');
   const [newMajor, setNewMajor] = useState('Rekayasa Perangkat Lunak');
   const [newTeacherName, setNewTeacherName] = useState('Siti Fatimah, S.Pd.');
+
+  // User Management State
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
+  const [userSearchQuery, setUserSearchQuery] = useState<string>('');
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+
+  // User Form State
+  const [formUsername, setFormUsername] = useState('');
+  const [formPassword, setFormPassword] = useState('');
+  const [formDisplayName, setFormDisplayName] = useState('');
+  const [formRole, setFormRole] = useState<UserRoleType>('wali_kelas');
+  const [formAssignedClass, setFormAssignedClass] = useState('Kelas XI RPL 1');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formNipOrNisn, setFormNipOrNisn] = useState('');
+  const [formStatus, setFormStatus] = useState<'Aktif' | 'Nonaktif'>('Aktif');
 
   // Pre-configured school classes list (combined with live classes)
   const allSchoolClasses: Classroom[] = [
@@ -120,30 +152,103 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setIsAddClassOpen(false);
   };
 
+  // Open User Modal for Add
+  const handleOpenAddUser = () => {
+    setEditingUserId(null);
+    setFormUsername('');
+    setFormPassword('smkn1sidayu2026');
+    setFormDisplayName('');
+    setFormRole('wali_kelas');
+    setFormAssignedClass('Kelas XI RPL 1');
+    setFormEmail('');
+    setFormPhone('');
+    setFormNipOrNisn('');
+    setFormStatus('Aktif');
+    setIsUserModalOpen(true);
+  };
+
+  // Open User Modal for Edit
+  const handleOpenEditUser = (user: ManagedUser) => {
+    setEditingUserId(user.id);
+    setFormUsername(user.username);
+    setFormPassword(user.password);
+    setFormDisplayName(user.displayName);
+    setFormRole(user.role);
+    setFormAssignedClass(user.assignedClassName || 'Kelas XI RPL 1');
+    setFormEmail(user.email || '');
+    setFormPhone(user.phone || '');
+    setFormNipOrNisn(user.nipOrNisn || '');
+    setFormStatus(user.status);
+    setIsUserModalOpen(true);
+  };
+
+  // Submit User Form (Add or Edit)
+  const handleUserFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const now = new Date().toISOString();
+    const userToSave: ManagedUser = {
+      id: editingUserId || `usr_${Date.now()}`,
+      username: formUsername.trim().toLowerCase(),
+      password: formPassword.trim(),
+      displayName: formDisplayName.trim(),
+      role: formRole,
+      assignedClassName: formAssignedClass,
+      assignedClassId: formRole === 'wali_kelas' ? (classes.find(c => c.name === formAssignedClass)?.id || 'cls_rpl1') : undefined,
+      email: formEmail.trim(),
+      phone: formPhone.trim(),
+      nipOrNisn: formNipOrNisn.trim(),
+      status: formStatus,
+      createdAt: editingUserId ? (managedUsers.find(u => u.id === editingUserId)?.createdAt || now) : now,
+      updatedAt: now
+    };
+
+    onSaveUser(userToSave);
+    setIsUserModalOpen(false);
+  };
+
+  // Toggle show/hide password
+  const toggleRevealPassword = (id: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Filtered Users List
+  const filteredUsers = managedUsers.filter(u => {
+    const matchRole = userRoleFilter === 'all' || u.role === userRoleFilter;
+    const matchSearch =
+      u.displayName.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      u.username.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      (u.assignedClassName && u.assignedClassName.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
+      (u.nipOrNisn && u.nipOrNisn.includes(userSearchQuery));
+    return matchRole && matchSearch;
+  });
+
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6 animate-fadeIn font-['Plus_Jakarta_Sans',sans-serif]">
       
-      {/* Admin Executive Hero */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-900/40">
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+      {/* Top Banner & Title */}
+      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Portal Administrator & Supervisi Sekolah SMKN 1 Sidayu</span>
+              <span>Portal Administrator &amp; Pengelolaan Pengguna SMKN 1 Sidayu</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Selamat Datang, {currentAdmin.displayName}
             </h1>
             <p className="text-xs sm:text-sm text-emerald-100/80 max-w-2xl leading-relaxed">
-              Panel kendali terpusat untuk Kepala Sekolah, Wakasek Kesiswaan, dan Pengawas Sekolah dalam memantau kinerja seluruh wali kelas, presensi sekolah, serta penanganan kasus siswa.
+              Panel kendali terpusat untuk Kepala Sekolah, Wakasek Kesiswaan, dan Administrator dalam mengelola akun pengguna (user &amp; password wali kelas, siswa, guru), memantau rombel, dan supervisi kesiswaan.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={() => onOpenAIWithPrompt(`Tolong susun analisis eksekutif komprehensif tingkat sekolah untuk Kepala Sekolah dan Tim Pengawas SMKN 1 Sidayu, mencakup koordinasi 4 rombel kejuruan, rekap kasus kesejahteraan BK, dan audit kedisiplinan semester berjalan.`)}
+              onClick={() => onOpenAIWithPrompt(`Tolong susun analisis eksekutif komprehensif tingkat sekolah untuk Kepala Sekolah dan Tim Pengawas SMKN 1 Sidayu, mencakup koordinasi seluruh rombel kejuruan, akun wali kelas aktif, rekap kasus kesejahteraan BK, dan audit kedisiplinan semester berjalan.`)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all"
             >
               <Sparkles className="w-4 h-4 text-slate-950" />
@@ -173,34 +278,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Akun User Terdaftar</span>
+          <div className="text-2xl font-bold text-indigo-700">{managedUsers.length} Akun</div>
+          <span className="text-[11px] text-indigo-600 font-semibold mt-1 inline-block">
+            Dikelola Admin
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-semibold text-slate-500 block mb-1">Guru Wali Kelas</span>
-          <div className="text-2xl font-bold text-slate-900">{homeroomTeachers.length} Guru</div>
+          <div className="text-2xl font-bold text-slate-900">
+            {managedUsers.filter(u => u.role === 'wali_kelas').length || homeroomTeachers.length} Guru
+          </div>
           <span className="text-[11px] text-slate-500 mt-1 inline-block">
-            Terhubung & Aktif
+            Terhubung &amp; Aktif
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Total Siswa Sekolah</span>
-          <div className="text-2xl font-bold text-slate-900">{students.length > 0 ? students.length * 4 : 144} Siswa</div>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Siswa Terpantau</span>
+          <div className="text-2xl font-bold text-slate-900">{students.length} Siswa</div>
           <span className="text-[11px] text-emerald-600 font-semibold mt-1 inline-block">
-            Rekap Dapodik
+            Rombel XI RPL 1
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Rata-rata Presensi</span>
-          <div className="text-2xl font-bold text-slate-900">93.8%</div>
-          <span className="text-[11px] text-emerald-600 font-semibold mt-1 inline-block">
-            Target &gt;90% Tercapai
-          </span>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Kasus BK & Kesiswaan</span>
-          <div className="text-2xl font-bold text-teal-700">{welfareCases.length || 3} Kasus</div>
-          <span className="text-[11px] text-teal-600 font-semibold mt-1 inline-block">
-            Dalam Penanganan Terpadu
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Kasus BK &amp; Kesejahteraan</span>
+          <div className="text-2xl font-bold text-amber-600">
+            {welfareCases.filter(w => w.status !== 'Selesai').length} Kasus
+          </div>
+          <span className="text-[11px] text-amber-700 font-semibold mt-1 inline-block">
+            Pendampingan Suportif
           </span>
         </div>
 
@@ -218,6 +327,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="flex items-center gap-1.5">
           {[
             { id: 'overview', label: 'Ringkasan Rombel Sekolah', icon: School },
+            { id: 'users', label: 'Kelola Pengguna (User & Password)', icon: KeyRound },
             { id: 'teachers', label: 'Direktori Guru Wali Kelas', icon: Users },
             { id: 'supervision', label: 'Supervisi BK & Kesiswaan', icon: AlertTriangle },
             { id: 'reports', label: 'Audit Dokumen Laporan', icon: FileText }
@@ -241,237 +351,549 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           })}
         </div>
 
-        <button
-          onClick={() => setIsAddClassOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shrink-0 shadow-2xs"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Rombel Kelas</span>
-        </button>
+        {adminTab === 'users' ? (
+          <button
+            onClick={handleOpenAddUser}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-colors shrink-0 shadow-2xs"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Tambah User &amp; Password</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsAddClassOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shrink-0 shadow-2xs"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Rombel Kelas</span>
+          </button>
+        )}
       </div>
 
-      {/* TAB 1: OVERVIEW / CLASSES LIST */}
+      {/* TAB 1: KELOLA PENGGUNA (USER & PASSWORD) - FITUR UTAMA PERMINTAAN USER */}
+      {adminTab === 'users' && (
+        <div className="space-y-5">
+          
+          {/* Controls Bar: Filter Role, Search, Count */}
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-slate-500">Filter Peran:</span>
+              <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
+                {[
+                  { id: 'all', label: 'Semua User' },
+                  { id: 'wali_kelas', label: 'Wali Kelas' },
+                  { id: 'siswa', label: 'Siswa' },
+                  { id: 'guru_bk', label: 'Guru BK' },
+                  { id: 'admin', label: 'Admin' }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setUserRoleFilter(r.id)}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all ${
+                      userRoleFilter === r.id
+                        ? 'bg-white text-slate-900 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={e => setUserSearchQuery(e.target.value)}
+                placeholder="Cari nama, user, atau kelas..."
+                className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-indigo-600"
+              />
+            </div>
+          </div>
+
+          {/* Table of Users */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-extrabold border-b border-slate-200">
+                  <tr>
+                    <th className="p-4">Pengguna &amp; Nama Lengkap</th>
+                    <th className="p-4">Username Login</th>
+                    <th className="p-4">Password</th>
+                    <th className="p-4">Peran (Role)</th>
+                    <th className="p-4">Penugasan / Kelas</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right">Aksi Kelola</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-slate-400 italic">
+                        Tidak ada pengguna ditemukan dengan kriteria pencarian ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map(user => {
+                      const isRevealed = !!revealedPasswords[user.id];
+                      return (
+                        <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                          
+                          {/* Nama & Email */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 ${
+                                user.role === 'admin' ? 'bg-slate-900' :
+                                user.role === 'wali_kelas' ? 'bg-emerald-600' :
+                                user.role === 'siswa' ? 'bg-indigo-600' : 'bg-purple-600'
+                              }`}>
+                                {user.displayName[0]}
+                              </div>
+                              <div>
+                                <span className="font-extrabold text-slate-900 block text-xs sm:text-sm">
+                                  {user.displayName}
+                                </span>
+                                <span className="text-[11px] text-slate-400 block">
+                                  {user.nipOrNisn ? `NIP/NISN: ${user.nipOrNisn}` : user.email || '-'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Username */}
+                          <td className="p-4">
+                            <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                              {user.username}
+                            </span>
+                          </td>
+
+                          {/* Password dengan Show/Hide */}
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs font-bold text-slate-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                                {isRevealed ? user.password : '••••••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleRevealPassword(user.id)}
+                                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                                title={isRevealed ? 'Sembunyikan' : 'Tampilkan Password'}
+                              >
+                                {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Role Badge */}
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${
+                              user.role === 'admin'
+                                ? 'bg-slate-900 text-emerald-300 border-slate-800'
+                                : user.role === 'wali_kelas'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : user.role === 'siswa'
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                : 'bg-purple-50 text-purple-800 border-purple-200'
+                            }`}>
+                              {user.role === 'admin' ? 'Super Admin' :
+                               user.role === 'wali_kelas' ? 'Wali Kelas' :
+                               user.role === 'siswa' ? 'Siswa / Murid' :
+                               user.role === 'guru_bk' ? 'Guru BK' : 'Guru Mapel'}
+                            </span>
+                          </td>
+
+                          {/* Assigned Class */}
+                          <td className="p-4 text-slate-700 font-semibold">
+                            {user.assignedClassName || '-'}
+                          </td>
+
+                          {/* Status */}
+                          <td className="p-4">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              user.status === 'Aktif'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${user.status === 'Aktif' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                              {user.status}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenEditUser(user)}
+                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Edit Username / Password"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Apakah Anda yakin ingin menghapus akun ${user.displayName} (${user.username})?`)) {
+                                    onDeleteUser(user.id);
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Hapus User"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB 2: OVERVIEW / CLASSES LIST */}
       {adminTab === 'overview' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">
-              Daftar Rombel & Kelas Binaan SMKN 1 Sidayu
+              Daftar Rombel &amp; Kelas Binaan SMKN 1 Sidayu
             </h3>
             <span className="text-xs text-slate-500">
-              Pilih kelas untuk langsung memantau data secara mendalam
+              Menampilkan {allSchoolClasses.length} rombel aktif
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {allSchoolClasses.map(cls => (
-              <div
-                key={cls.id}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {cls.grade}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {cls.academicYear}
-                    </span>
-                  </div>
-
-                  <h4 className="text-base font-bold text-slate-900 mt-2">
-                    {cls.name}
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Jurusan: {cls.major || 'Teknologi Informasi'}
-                  </p>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 text-xs space-y-1.5 text-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span>Target Kehadiran:</span>
-                      <strong className="text-emerald-700">{cls.targetAttendanceRate}%</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Status Laporan:</span>
-                      <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
-                        <CheckCircle className="w-3.5 h-3.5" /> Terverifikasi
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    onSelectClass(cls);
-                    onSwitchToTeacherMode();
-                  }}
-                  className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+            {allSchoolClasses.map(cls => {
+              const isCurrentSelected = cls.id === classes[0]?.id;
+              return (
+                <div
+                  key={cls.id}
+                  className={`bg-white rounded-2xl border p-5 shadow-xs transition-all relative ${
+                    isCurrentSelected
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
                 >
-                  <Eye className="w-4 h-4" />
-                  <span>Pantau & Kelola Kelas</span>
-                </button>
+                  {isCurrentSelected && (
+                    <span className="absolute top-4 right-4 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      Sedang Aktif
+                    </span>
+                  )}
+
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold mb-3">
+                    <School className="w-5 h-5 text-emerald-600" />
+                  </div>
+
+                  <h4 className="font-extrabold text-base text-slate-900 mb-0.5">{cls.name}</h4>
+                  <p className="text-xs text-slate-500 mb-3">{cls.major || 'Kejuruan Teknologi'}</p>
+
+                  <div className="space-y-1.5 text-xs text-slate-600 pt-3 border-t border-slate-100 mb-4">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Tingkat:</span>
+                      <span className="font-semibold text-slate-800">{cls.grade}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Target Presensi:</span>
+                      <span className="font-semibold text-emerald-600">{cls.targetAttendanceRate}%</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => onSelectClass(cls)}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>Masuk ke Kelas Ini</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: TEACHERS DIRECTORY */}
+      {adminTab === 'teachers' && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Direktori Guru Wali Kelas</h3>
+              <p className="text-xs text-slate-500">Daftar guru yang ditugaskan sebagai wali kelas tahun ajaran 2026/2027</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              {homeroomTeachers.length} Wali Kelas Aktif
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="p-3">Nama Lengkap &amp; Gelar</th>
+                  <th className="p-3">NIP</th>
+                  <th className="p-3">Kelas Binaan</th>
+                  <th className="p-3">Email Dinas</th>
+                  <th className="p-3">Status Laporan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {homeroomTeachers.map((t, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-slate-900">{t.name}</td>
+                    <td className="p-3 text-slate-500 font-mono">{t.nip}</td>
+                    <td className="p-3 font-semibold text-emerald-700">{t.classAssigned}</td>
+                    <td className="p-3 text-slate-600">{t.email}</td>
+                    <td className="p-3">
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                        t.status === 'Laporan Lengkap'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {t.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: SUPERVISI BK & KESISWAAN */}
+      {adminTab === 'supervision' && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Rekap Supervisi Kasus Kesiswaan &amp; BK</h3>
+              <p className="text-xs text-slate-500">Monitoring lintas rombel untuk pendampingan siswa dan pencegahan putus sekolah</p>
+            </div>
+            <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              {welfareCases.length} Kasus Tercatat
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {welfareCases.map(wc => (
+              <div key={wc.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-slate-900 text-sm">
+                      {students.find(s => s.id === wc.studentId)?.name || 'Siswa Kelas XI RPL 1'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900">
+                      {wc.triggerCategory}
+                    </span>
+                    <span className="text-slate-400 text-[11px]">{wc.date}</span>
+                  </div>
+                  <p className="text-slate-600 max-w-xl">{wc.indications}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px] block sm:inline">
+                    Rekomendasi: {wc.actionRecommendation}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* TAB 2: TEACHERS DIRECTORY */}
-      {adminTab === 'teachers' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Direktori Guru Wali Kelas SMKN 1 Sidayu
-              </h3>
-              <p className="text-xs text-slate-500">
-                Pengawasan penugasan wali kelas, NIP resmi, rombel binaan, dan status pelaporan.
-              </p>
-            </div>
-          </div>
-
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="p-3">Nama Guru Wali Kelas</th>
-                  <th className="p-3">NIP</th>
-                  <th className="p-3">Rombel Binaan</th>
-                  <th className="p-3">Email Akun</th>
-                  <th className="p-3">Status Kepatuhan Dokumen</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {homeroomTeachers.map((tch, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-900">{tch.name}</td>
-                    <td className="p-3 font-mono text-slate-600">{tch.nip}</td>
-                    <td className="p-3 font-semibold text-emerald-800">{tch.classAssigned}</td>
-                    <td className="p-3 text-slate-600">{tch.email}</td>
-                    <td className="p-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                        {tch.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: SUPERVISION KESISWAAN & BK */}
-      {adminTab === 'supervision' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                Supervisi Terpadu Kesiswaan & Bimbingan Konseling (BK)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Deteksi dini penanganan kasus perundungan, penurunan motivasi, dan ketidakhadiran lintas rombel.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {welfareCases.length > 0 ? (
-              welfareCases.map(c => {
-                const student = students.find(s => s.id === c.studentId);
-                return (
-                  <div key={c.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">
-                        {student?.name || 'Siswa Binaan'} ({c.triggerCategory})
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white">
-                        {c.severity}
-                      </span>
-                    </div>
-                    <p className="text-slate-700">{c.indications}</p>
-                    <div className="text-emerald-700 font-semibold">
-                      Alur Tindakan Terpilih: {c.actionRecommendation} • Status: {c.status}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-xs text-slate-500 italic">Tidak ada kasus kesiswaan eskalasi mendesak.</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: AUDIT LAPORAN */}
+      {/* TAB 5: AUDIT DOKUMEN LAPORAN */}
       {adminTab === 'reports' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-600" />
-                Audit & Verifikasi Laporan Wali Kelas Seluruh Sekolah
-              </h3>
-              <p className="text-xs text-slate-500">
-                Pemeriksaan kepatuhan pelaporan berkala bulanan dan tengah semester (PTS) untuk ditandatangani Kepala Sekolah.
-              </p>
+              <h3 className="text-base font-bold text-slate-900">Audit &amp; Rekap Dokumen Laporan Wali Kelas</h3>
+              <p className="text-xs text-slate-500">Pengarsipan laporan bulanan, tengah semester, dan akhir semester dari seluruh rombel</p>
             </div>
           </div>
-
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
-                <tr>
-                  <th className="p-3">Rombel Kelas</th>
-                  <th className="p-3">Wali Kelas</th>
-                  <th className="p-3">Laporan Terkini</th>
-                  <th className="p-3">Status Pengesahan</th>
-                  <th className="p-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {homeroomTeachers.map((tch, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-900">{tch.classAssigned}</td>
-                    <td className="p-3 text-slate-700">{tch.name}</td>
-                    <td className="p-3 font-semibold text-emerald-800">Laporan Bulanan Oktober/November 2026</td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                        <CheckCircle className="w-3.5 h-3.5" /> Disahkan Kepala Sekolah
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={onSwitchToTeacherMode}
-                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold"
-                      >
-                        Lihat Laporan
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Semua laporan wali kelas diarsipkan secara real-time di Firestore dan diverifikasi oleh tim kurikulum serta kesiswaan SMKN 1 Sidayu.
+          </p>
         </div>
       )}
 
-      {/* ADD CLASS MODAL */}
-      {isAddClassOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-200 text-xs">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
-              <h3 className="text-base font-bold text-slate-900">
-                Tambah Rombel / Kelas Baru
-              </h3>
-              <button onClick={() => setIsAddClassOpen(false)} className="text-slate-400 hover:text-slate-600">
+      {/* MODAL USER MANAGEMENT (TAMBAH / EDIT USER & PASSWORD) */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    {editingUserId ? 'Edit Akun & Password Pengguna' : 'Tambah Akun Pengguna Baru'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Kelola kredensial akses untuk Wali Kelas, Siswa, Guru BK, atau Admin
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUserModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateClass} className="space-y-3.5">
+            <form onSubmit={handleUserFormSubmit} className="p-5 sm:p-6 space-y-4 text-xs">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Username Login *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formUsername}
+                    onChange={e => setFormUsername(e.target.value)}
+                    placeholder="contoh: wali_rpl3"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs outline-none focus:border-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Password *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formPassword}
+                    onChange={e => setFormPassword(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Nama Rombel Kelas *</label>
+                <label className="block font-bold text-slate-700 mb-1">Nama Lengkap &amp; Gelar *</label>
+                <input
+                  type="text"
+                  required
+                  value={formDisplayName}
+                  onChange={e => setFormDisplayName(e.target.value)}
+                  placeholder="contoh: Ahmad Zaidan, S.Pd."
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Peran (Role) *</label>
+                  <select
+                    value={formRole}
+                    onChange={e => setFormRole(e.target.value as UserRoleType)}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600 font-semibold cursor-pointer"
+                  >
+                    <option value="wali_kelas">Wali Kelas</option>
+                    <option value="siswa">Siswa / Wali Murid</option>
+                    <option value="guru_bk">Guru BK</option>
+                    <option value="guru_mapel">Guru Mata Pelajaran</option>
+                    <option value="admin">Administrator / Kepala Sekolah</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Penugasan Kelas / Rombel</label>
+                  <input
+                    type="text"
+                    value={formAssignedClass}
+                    onChange={e => setFormAssignedClass(e.target.value)}
+                    placeholder="contoh: Kelas XI RPL 1"
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">NIP atau NISN</label>
+                  <input
+                    type="text"
+                    value={formNipOrNisn}
+                    onChange={e => setFormNipOrNisn(e.target.value)}
+                    placeholder="1985... atau 0089..."
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Status Akun</label>
+                  <select
+                    value={formStatus}
+                    onChange={e => setFormStatus(e.target.value as 'Aktif' | 'Nonaktif')}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600 font-semibold cursor-pointer"
+                  >
+                    <option value="Aktif">Aktif</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Email Sekolah / Kontak WA</label>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={e => setFormEmail(e.target.value)}
+                  placeholder="user@smkn1sidayu.sch.id"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs outline-none focus:border-indigo-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editingUserId ? 'Simpan Perubahan' : 'Buat Akun User'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TAMBAH KELAS */}
+      {isAddClassOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <School className="w-5 h-5 text-emerald-400" />
+                <span>Tambah Rombel Kelas Baru</span>
+              </h3>
+              <button
+                onClick={() => setIsAddClassOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateClass} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Nama Rombel / Kelas *</label>
                 <input
                   type="text"
                   required
@@ -483,7 +905,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Tingkat *</label>
+                <label className="block font-bold text-slate-700 mb-1">Tingkat Kelas *</label>
                 <select
                   value={newGrade}
                   onChange={e => setNewGrade(e.target.value)}
@@ -538,6 +960,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
         </div>
       )}
+
     </div>
   );
 };

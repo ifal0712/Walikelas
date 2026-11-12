@@ -32,7 +32,8 @@ import {
   CommunicationLog,
   ClassReport,
   WelfareCase,
-  UserProfile
+  UserProfile,
+  ManagedUser
 } from './types';
 import {
   auth,
@@ -63,6 +64,9 @@ import { UnifiedLoginModal } from './components/UnifiedLoginModal';
 import { AdminPortal } from './components/AdminPortal';
 import { MenuHubCards } from './components/MenuHubCards';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { StudentPortalView } from './components/StudentPortalView';
+import { StudentDataInputModal } from './components/StudentDataInputModal';
+import { PublicLandingPage } from './components/PublicLandingPage';
 
 const initialDemoData = getInitialSampleData('guest_teacher');
 
@@ -85,16 +89,23 @@ export default function App() {
   const [communications, setCommunications] = useState<CommunicationLog[]>(initialDemoData.communications);
   const [reports, setReports] = useState<ClassReport[]>(initialDemoData.reports);
   const [welfareCases, setWelfareCases] = useState<WelfareCase[]>(initialDemoData.welfareCases);
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(initialDemoData.managedUsers || []);
 
   // Modals & Admin State
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiInitialPrompt, setAiInitialPrompt] = useState('');
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [loginPresetRole, setLoginPresetRole] = useState<'guru' | 'siswa' | 'admin'>('guru');
+  const [loginPresetUsername, setLoginPresetUsername] = useState('');
+  const [loginPresetPassword, setLoginPresetPassword] = useState('');
+
   const [customAdminProfile, setCustomAdminProfile] = useState<UserProfile | null>(null);
   const [customStudentProfile, setCustomStudentProfile] = useState<UserProfile | null>(null);
   const [isAdminPortalView, setIsAdminPortalView] = useState(false);
   const [extraClasses, setExtraClasses] = useState<Classroom[]>([]);
+  const [isStudentSelfEditModalOpen, setIsStudentSelfEditModalOpen] = useState(false);
+  const [studentToSelfEdit, setStudentToSelfEdit] = useState<Student | null>(null);
 
   const isEffectiveAdmin = isUserAdmin(currentUser) || !!customAdminProfile;
   const effectiveUser = customAdminProfile || customStudentProfile || currentUser;
@@ -229,6 +240,130 @@ Prestasi: ${achievements.length}
     setSelectedStudentForModal(st);
   };
 
+  // Handle Login from Unified Modal with Managed Credentials (Username & Password)
+  const handleLoginManagedUser = (user: ManagedUser) => {
+    const userProfile: UserProfile = {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      email: user.email || `${user.username}@smkn1sidayu.sch.id`,
+      role: user.role,
+      assignedClassId: user.assignedClassId,
+      assignedClassName: user.assignedClassName,
+      schoolName: 'SMKN 1 Sidayu',
+      nip: user.nipOrNisn,
+      nisn: user.role === 'siswa' ? user.nipOrNisn : undefined,
+      studentId: user.studentId,
+      createdAt: user.createdAt
+    };
+
+    if (user.role === 'admin') {
+      setCustomAdminProfile(userProfile);
+      setCustomStudentProfile(null);
+      setCurrentUser(userProfile);
+      setIsAdminPortalView(true);
+    } else if (user.role === 'siswa') {
+      setCustomStudentProfile(userProfile);
+      setCustomAdminProfile(null);
+      setCurrentUser(userProfile);
+      setIsAdminPortalView(false);
+      if (user.studentId) {
+        const found = students.find(s => s.id === user.studentId);
+        if (found) setSelectedStudentForModal(found);
+      }
+    } else {
+      // Wali Kelas, Guru BK, Guru Mapel
+      setCurrentUser(userProfile);
+      setCustomAdminProfile(null);
+      setCustomStudentProfile(null);
+      setIsAdminPortalView(false);
+      if (user.assignedClassId || user.assignedClassName) {
+        const matchingClass = (currentClass ? [currentClass, ...extraClasses] : extraClasses).find(
+          c => c.id === user.assignedClassId || c.name === user.assignedClassName
+        );
+        if (matchingClass) setCurrentClass(matchingClass);
+      }
+    }
+  };
+
+  // Open Login with preset credentials from landing page
+  const handleOpenLoginWithPreset = (
+    role: 'guru' | 'siswa' | 'admin' = 'guru',
+    defaultUsername: string = '',
+    defaultPassword: string = ''
+  ) => {
+    setLoginPresetRole(role);
+    setLoginPresetUsername(defaultUsername);
+    setLoginPresetPassword(defaultPassword);
+    setIsLoginModalOpen(true);
+  };
+
+  // Global Logout to return to Public Landing Page
+  const handleLogout = () => {
+    logoutUser();
+    setCustomAdminProfile(null);
+    setCustomStudentProfile(null);
+    setCurrentUser(null);
+    setIsAdminPortalView(false);
+  };
+
+  // Save / Edit Managed User (Admin capability)
+  const handleSaveUser = (user: ManagedUser) => {
+    setManagedUsers(prev => {
+      const idx = prev.findIndex(u => u.id === user.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = user;
+        return updated;
+      }
+      return [...prev, user];
+    });
+    saveRecord('managedUsers', { ...user, teacherId: currentUser?.id || 'admin_user' });
+  };
+
+  // Delete Managed User (Admin capability)
+  const handleDeleteUser = (userId: string) => {
+    setManagedUsers(prev => prev.filter(u => u.id !== userId));
+    removeRecord('managedUsers', userId);
+  };
+
+  // ==========================================
+  // TAMPILAN AWAL TANPA LOGIN: PUBLIC LANDING PAGE & DIAGRAM KESISWAAN
+  // ==========================================
+  if (!effectiveUser) {
+    return (
+      <div className="min-h-screen w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+        <PublicLandingPage
+          classroom={currentClass}
+          students={students}
+          attendance={attendance}
+          grades={grades}
+          characterLogs={characterLogs}
+          disciplineLogs={disciplineLogs}
+          achievements={achievements}
+          onOpenLogin={handleOpenLoginWithPreset}
+        />
+
+        {/* Unified Login Modal ("Masuk Akun" dan "Login Siswa" terpadu dengan User & Password) */}
+        <UnifiedLoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onGoogleLogin={async () => {
+            await loginWithGoogle();
+          }}
+          onLoginManagedUser={handleLoginManagedUser}
+          onStudentDirectLogin={handleStudentLogin}
+          students={students}
+          managedUsers={managedUsers}
+          currentUser={effectiveUser}
+          initialRole={loginPresetRole}
+          initialUsername={loginPresetUsername}
+          initialPassword={loginPresetPassword}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] overflow-x-hidden">
       
@@ -240,12 +375,7 @@ Prestasi: ${achievements.length}
         user={effectiveUser}
         isFirebaseConnected={isFirebaseConnected}
         onOpenLogin={() => setIsLoginModalOpen(true)}
-        onLogout={() => {
-          logoutUser();
-          setCustomAdminProfile(null);
-          setCustomStudentProfile(null);
-          setIsAdminPortalView(false);
-        }}
+        onLogout={handleLogout}
         onOpenAI={() => {
           setAiInitialPrompt('');
           setIsAIModalOpen(true);
@@ -260,35 +390,25 @@ Prestasi: ${achievements.length}
       {/* Main Content Area: Ukuran otomatis menyesuaikan layar */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 transition-all">
         
-        {/* Banner Khusus jika Siswa / Wali Murid Sedang Login */}
-        {effectiveUser?.role === 'siswa' && (
-          <div className="mb-5 p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                {effectiveUser.displayName[0]}
-              </div>
-              <div>
-                <h4 className="font-extrabold text-xs sm:text-sm text-indigo-900">
-                  Selamat Datang, {effectiveUser.displayName}!
-                </h4>
-                <p className="text-[11px] sm:text-xs text-indigo-700 leading-relaxed">
-                  Anda login sebagai Siswa / Wali Murid (NISN: {effectiveUser.nisn || '-'}). Anda dapat melihat ringkasan presensi dan evaluasi belajar Anda.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                const st = students.find(s => s.id === effectiveUser.studentId);
-                if (st) setSelectedStudentForModal(st);
-              }}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-xs transition-all shrink-0"
-            >
-              Lihat Rapor Siswa
-            </button>
-          </div>
-        )}
-        
-        {isAdminPortalView ? (
+        {/* TAMPILAN KHUSUS ROLE SISWA: Dibatasi hanya untuk hal yang perlu diketahui siswa */}
+        {effectiveUser?.role === 'siswa' ? (
+          <StudentPortalView
+            student={students.find(s => s.id === effectiveUser.studentId) || students[0]}
+            classroom={currentClass}
+            attendance={attendance}
+            grades={grades}
+            characterLogs={characterLogs}
+            disciplineLogs={disciplineLogs}
+            achievements={achievements}
+            welfareCases={welfareCases}
+            onOpenEditSelfData={st => {
+              setStudentToSelfEdit(st);
+              setIsStudentSelfEditModalOpen(true);
+            }}
+            onOpenAIWithPrompt={handleOpenAIWithPrompt}
+            onLogout={handleLogout}
+          />
+        ) : isAdminPortalView ? (
           <AdminPortal
             currentAdmin={effectiveUser || {
               id: 'admin_default',
@@ -301,6 +421,9 @@ Prestasi: ${achievements.length}
             classes={currentClass ? [currentClass, ...extraClasses] : extraClasses}
             students={students}
             welfareCases={welfareCases}
+            managedUsers={managedUsers}
+            onSaveUser={handleSaveUser}
+            onDeleteUser={handleDeleteUser}
             onSelectClass={cls => {
               setCurrentClass(cls);
               setIsAdminPortalView(false);
@@ -310,11 +433,7 @@ Prestasi: ${achievements.length}
               saveRecord('classes', { ...newCls, teacherId: effectiveUser?.id || 'admin_user' });
             }}
             onSwitchToTeacherMode={() => setIsAdminPortalView(false)}
-            onLogoutAdmin={() => {
-              setCustomAdminProfile(null);
-              setIsAdminPortalView(false);
-              logoutUser();
-            }}
+            onLogoutAdmin={handleLogout}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
           />
         ) : (
@@ -656,24 +775,46 @@ Prestasi: ${achievements.length}
         contextDataSummary={contextSummary}
       />
 
-      {/* Unified Login Modal ("Masuk Akun" dan "Login Siswa" dijadikan 1) */}
+      {/* Unified Login Modal ("Masuk Akun" dan "Login Siswa" terpadu dengan User & Password) */}
       <UnifiedLoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onGoogleLogin={async () => {
           await loginWithGoogle();
         }}
-        onPasskeyLogin={profile => {
-          setCustomAdminProfile(profile);
-          setIsAdminPortalView(true);
-        }}
-        onStudentLogin={handleStudentLogin}
+        onLoginManagedUser={handleLoginManagedUser}
+        onStudentDirectLogin={handleStudentLogin}
         students={students}
+        managedUsers={managedUsers}
         currentUser={effectiveUser}
+        initialRole={loginPresetRole}
+        initialUsername={loginPresetUsername}
+        initialPassword={loginPresetPassword}
       />
 
-      {/* Mobile Android Bottom Navigation */}
-      {!isAdminPortalView && (
+      {/* Student Self-Data Input Modal */}
+      <StudentDataInputModal
+        isOpen={isStudentSelfEditModalOpen}
+        onClose={() => setIsStudentSelfEditModalOpen(false)}
+        student={studentToSelfEdit}
+        onSaveStudent={st => {
+          setStudents(prev => {
+            const idx = prev.findIndex(s => s.id === st.id);
+            if (idx >= 0) {
+              const updated = [...prev];
+              updated[idx] = st;
+              return updated;
+            }
+            return [...prev, st];
+          });
+          saveRecord('students', { ...st, teacherId: currentUser?.id || 'guest_teacher' });
+          setIsStudentSelfEditModalOpen(false);
+        }}
+        isStudentUser={true}
+      />
+
+      {/* Mobile Android Bottom Navigation (Hanya untuk Wali Kelas di subpages) */}
+      {!isAdminPortalView && effectiveUser?.role !== 'siswa' && (
         <MobileBottomNav
           activeTab={activeTab}
           onNavigateTab={setActiveTab}

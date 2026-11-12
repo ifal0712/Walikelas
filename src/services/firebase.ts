@@ -32,7 +32,8 @@ import {
   ClassReport,
   WelfareCase,
   Classroom,
-  UserProfile
+  UserProfile,
+  ManagedUser
 } from '../types';
 
 // 1. Initialize Firebase
@@ -951,6 +952,99 @@ export function getInitialSampleData(teacherId: string = 'guest_teacher') {
     }
   ];
 
+  const managedUsers: ManagedUser[] = [
+    {
+      id: 'usr_wali_rpl1',
+      username: 'wali_rpl1',
+      password: 'wali123',
+      displayName: 'Mohammad Alamifal, S.Pd., M.Kom.',
+      role: 'wali_kelas',
+      assignedClassId: classId,
+      assignedClassName: 'Kelas XI RPL 1',
+      email: 'alamifal@smkn1sidayu.sch.id',
+      phone: '081234567890',
+      nipOrNisn: '19850920 201101 1 009',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'usr_wali_rpl2',
+      username: 'wali_rpl2',
+      password: 'wali123',
+      displayName: 'Siti Fatimah, S.Pd.',
+      role: 'wali_kelas',
+      assignedClassId: 'cls_rpl2',
+      assignedClassName: 'Kelas XI RPL 2',
+      email: 'sitifatimah@smkn1sidayu.sch.id',
+      phone: '081234567891',
+      nipOrNisn: '19890412 201402 2 004',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'usr_guru_bk',
+      username: 'guru_bk',
+      password: 'bk123',
+      displayName: 'Rina Rahmawati, S.Pd., M.Pd.',
+      role: 'guru_bk',
+      assignedClassName: 'Bimbingan Konseling (BK)',
+      email: 'rinabk@smkn1sidayu.sch.id',
+      phone: '081234567892',
+      nipOrNisn: '19820315 200801 2 012',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'usr_siswa_zaky',
+      username: 'siswa_zaky',
+      password: 'siswa123',
+      displayName: 'Ahmad Zaky Maulana',
+      role: 'siswa',
+      assignedClassId: classId,
+      assignedClassName: 'Kelas XI RPL 1',
+      studentId: students[0].id,
+      email: '0089123401@siswa.smkn1sidayu.sch.id',
+      phone: '081234567801',
+      nipOrNisn: '0089123401',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'usr_siswa_siti',
+      username: 'siswa_siti',
+      password: 'siswa123',
+      displayName: 'Siti Nurhaliza Putri',
+      role: 'siswa',
+      assignedClassId: classId,
+      assignedClassName: 'Kelas XI RPL 1',
+      studentId: students[1].id,
+      email: '0089123402@siswa.smkn1sidayu.sch.id',
+      phone: '081234567803',
+      nipOrNisn: '0089123402',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: 'usr_admin',
+      username: 'admin',
+      password: 'admin123',
+      displayName: 'Drs. H. Miftahul Huda, M.Pd.',
+      role: 'admin',
+      assignedClassName: 'Kepala Sekolah (Super Admin)',
+      email: 'kepsek@smkn1sidayu.sch.id',
+      phone: '081234567888',
+      nipOrNisn: '19680514 199412 1 002',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
   return {
     classroom,
     students,
@@ -961,6 +1055,7 @@ export function getInitialSampleData(teacherId: string = 'guest_teacher') {
     achievements,
     welfareCases,
     communications,
-    reports
+    reports,
+    managedUsers
   };
 }

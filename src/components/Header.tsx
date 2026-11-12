@@ -89,44 +89,54 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Classroom Selector (Otomatis menyesuaikan layar) */}
-          <div className="hidden lg:flex items-center gap-2 bg-slate-100/90 p-1.5 rounded-xl border border-slate-200 text-xs">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 font-medium text-slate-600">
-              <School className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{currentClass?.schoolName || 'SMKN 1 Sidayu'}</span>
-            </div>
-            <div className="h-4 w-px bg-slate-300" />
-            <div className="flex items-center gap-1.5 px-2 py-1">
-              <Users className="w-3.5 h-3.5 text-indigo-600" />
-              {classes.length > 1 ? (
-                <select
-                  value={currentClass?.id}
-                  onChange={e => {
-                    const found = classes.find(c => c.id === e.target.value);
-                    if (found) onSelectClass(found);
-                  }}
-                  className="font-semibold text-slate-800 bg-transparent outline-none cursor-pointer"
-                >
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <span className="font-bold text-slate-800">
-                  {currentClass?.name || 'Kelas XI RPL 1'}
-                </span>
-              )}
-            </div>
-            <div className="h-4 w-px bg-slate-300" />
-            <div className="flex items-center gap-1 px-2 font-medium text-slate-600">
-              <Calendar className="w-3.5 h-3.5 text-amber-600" />
-              <span>
-                {currentClass?.academicYear || '2026/2027'} ({currentClass?.semester || 'Ganjil'})
+          {/* Classroom Selector or Student Portal Badge */}
+          {user?.role === 'siswa' ? (
+            <div className="hidden md:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3.5 py-1.5 rounded-xl text-xs text-indigo-950 font-extrabold shadow-2xs">
+              <GraduationCap className="w-4 h-4 text-indigo-600" />
+              <span>Portal Mandiri Siswa • {currentClass?.name || 'Kelas XI RPL 1'}</span>
+              <span className="text-[10px] text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-md font-semibold">
+                SMKN 1 Sidayu
               </span>
             </div>
-          </div>
+          ) : (
+            <div className="hidden lg:flex items-center gap-2 bg-slate-100/90 p-1.5 rounded-xl border border-slate-200 text-xs">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 font-medium text-slate-600">
+                <School className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{currentClass?.schoolName || 'SMKN 1 Sidayu'}</span>
+              </div>
+              <div className="h-4 w-px bg-slate-300" />
+              <div className="flex items-center gap-1.5 px-2 py-1">
+                <Users className="w-3.5 h-3.5 text-indigo-600" />
+                {classes.length > 1 ? (
+                  <select
+                    value={currentClass?.id}
+                    onChange={e => {
+                      const found = classes.find(c => c.id === e.target.value);
+                      if (found) onSelectClass(found);
+                    }}
+                    className="font-semibold text-slate-800 bg-transparent outline-none cursor-pointer"
+                  >
+                    {classes.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="font-bold text-slate-800">
+                    {currentClass?.name || 'Kelas XI RPL 1'}
+                  </span>
+                )}
+              </div>
+              <div className="h-4 w-px bg-slate-300" />
+              <div className="flex items-center gap-1 px-2 font-medium text-slate-600">
+                <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                <span>
+                  {currentClass?.academicYear || '2026/2027'} ({currentClass?.semester || 'Ganjil'})
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Right Action Group */}
           <div className="flex items-center gap-1.5 sm:gap-3">

@@ -212,15 +212,37 @@ export interface Classroom {
   updatedAt?: string;
 }
 
+export type UserRoleType = 'wali_kelas' | 'guru_mapel' | 'guru_bk' | 'siswa' | 'admin';
+
+export interface ManagedUser {
+  id: string;
+  username: string;
+  password: string;
+  displayName: string;
+  role: UserRoleType;
+  assignedClassId?: string;
+  assignedClassName?: string;
+  email?: string;
+  phone?: string;
+  nipOrNisn?: string;
+  studentId?: string;
+  status: 'Aktif' | 'Nonaktif';
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
+  username?: string;
   displayName: string;
   schoolName?: string;
   nip?: string;
   nisn?: string;
   studentId?: string;
-  role: 'wali_kelas' | 'admin' | 'siswa';
+  role: 'wali_kelas' | 'admin' | 'siswa' | 'guru_mapel' | 'guru_bk';
+  assignedClassId?: string;
+  assignedClassName?: string;
   createdAt: string;
   updatedAt?: string;
 }
