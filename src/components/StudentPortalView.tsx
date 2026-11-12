@@ -325,7 +325,7 @@ export const StudentPortalView: React.FC<StudentPortalViewProps> = ({
         category: 'Karakter',
         title: `Keteladanan Karakter: ${topChar.valueType} (${topChar.rating}/5)`,
         summary: topChar.notes || 'Menunjukkan sikap terpuji dan keteladanan positif di lingkungan sekolah',
-        tag: 'Karakter Pancasila',
+        tag: '8 Dimensi Profil SMK',
         metric: `${topChar.rating}/5.0`,
         date: topChar.date,
         iconType: 'character',

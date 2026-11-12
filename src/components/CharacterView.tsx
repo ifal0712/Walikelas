@@ -20,17 +20,15 @@ interface CharacterViewProps {
   onOpenAIWithPrompt: (prompt: string) => void;
 }
 
-const CORE_VALUES: { type: CharacterValueType; desc: string; color: string }[] = [
-  { type: 'Religius', desc: 'Ketaatan beribadah, toleransi, syukur', color: 'from-emerald-500 to-teal-600' },
-  { type: 'Jujur', desc: 'Kejujuran akademis, perkataan sesuai fakta', color: 'from-blue-500 to-indigo-600' },
-  { type: 'Disiplin', desc: 'Ketepatan waktu, ketaatan tata tertib', color: 'from-purple-500 to-violet-600' },
-  { type: 'Tanggung Jawab', desc: 'Penyelesaian tugas, konsekuensi amanah', color: 'from-amber-500 to-orange-600' },
-  { type: 'Kerja Sama', desc: 'Kolaborasi tim, empati antarteman', color: 'from-cyan-500 to-blue-600' },
-  { type: 'Kepedulian', desc: 'Peduli lingkungan, solidaritas sosial', color: 'from-rose-500 to-pink-600' },
-  { type: 'Kepemimpinan', desc: 'Inisiatif, teladan, membimbing rekan', color: 'from-indigo-600 to-purple-700' },
-  { type: 'Percaya Diri', desc: 'Keberanian berpendapat, optimisme', color: 'from-teal-600 to-emerald-700' },
-  { type: 'Kemandirian', desc: 'Inisiatif belajar mandiri, pantang menyerah', color: 'from-orange-500 to-amber-600' },
-  { type: 'Integritas', desc: 'Konsistensi moral, amanah, keteguhan hati', color: 'from-emerald-600 to-cyan-700' }
+const CORE_VALUES: { type: CharacterValueType; desc: string; color: string; badgeColor: string }[] = [
+  { type: 'Beriman & Berakhlak Mulia', desc: 'Integritas moral, etika ibadah, keteladanan budi pekerti', color: 'from-emerald-500 to-teal-600', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { type: 'Berkebinekaan Global', desc: 'Toleransi kebhinekaan, wawasan terbuka & adaptasi budaya', color: 'from-blue-500 to-indigo-600', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { type: 'Bergotong Royong', desc: 'Kolaborasi tim proyek, kepedulian sosial & sinergi kerja', color: 'from-cyan-500 to-blue-600', badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  { type: 'Mandiri', desc: 'Inisiatif belajar mandiri, tangguh & bertanggung jawab', color: 'from-amber-500 to-orange-600', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { type: 'Bernalar Kritis', desc: 'Problem solving analitis, verifikasi data & evaluasi logis', color: 'from-purple-500 to-violet-600', badgeColor: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { type: 'Kreatif & Inovatif', desc: 'Gagasan orisinal, kreasi karya kejuruan & adaptasi solusi', color: 'from-rose-500 to-pink-600', badgeColor: 'bg-rose-50 text-rose-700 border-rose-200' },
+  { type: 'Disiplin & Etos Kerja', desc: 'Kepatuhan K3/SOP industri, ketepatan waktu & presisi mutu', color: 'from-indigo-600 to-purple-700', badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  { type: 'Kewirausahaan & Kepemimpinan', desc: 'Jiwa entrepreneurship, inisiatif memimpin & orientasi pasar', color: 'from-teal-600 to-emerald-700', badgeColor: 'bg-teal-50 text-teal-700 border-teal-200' }
 ];
 
 export const CharacterView: React.FC<CharacterViewProps> = ({
@@ -43,7 +41,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   const [selectedValueFilter, setSelectedValueFilter] = useState<string>('Semua');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newLog, setNewLog] = useState<Partial<CharacterLog>>({
-    valueType: 'Tanggung Jawab',
+    valueType: 'Beriman & Berakhlak Mulia',
     rating: 5,
     context: 'Kegiatan Belajar Mengajar',
     notes: '',
@@ -88,21 +86,21 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-            Pemantauan 10 Nilai Karakter Bangsa
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            Pemantauan 8 Dimensi Profil Lulusan SMK
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Observasi perkembangan kepribadian, integritas, kemandirian, dan profil pelajar dengan bahasa objektif & konstruktif.
+            Observasi perkembangan 8 dimensi Profil Lulusan Kurikulum Merdeka Kejuruan SMKN 1 Sidayu (Skala 1.0 s/d 5.0).
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => onOpenAIWithPrompt(`Tolong buatkan Ringkasan Catatan Karakter Bulanan untuk kelas kami berdasarkan observasi 10 nilai karakter. Sorot perkembangan positif siswa dalam religiusitas, tanggung jawab, dan kerja sama, serta berikan rekomendasi penguatan karakter yang konstruktif.`)}
+            onClick={() => onOpenAIWithPrompt(`Tolong buatkan Ringkasan Evaluasi 8 Dimensi Profil Lulusan SMK untuk kelas XI RPL 1 berdasarkan catatan observasi karakter. Sorot capaian dimensi seperti Disiplin & Etos Kerja, Bergotong Royong, dan Mandiri, serta berikan rekomendasi penguatan karakter terapan untuk persiapan magang industri (PKL).`)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 font-bold text-xs border border-purple-200 transition-colors"
           >
             <Sparkles className="w-4 h-4 text-purple-600" />
-            <span>Generate Catatan Bulanan AI</span>
+            <span>Generate Evaluasi AI</span>
           </button>
 
           <button
@@ -115,43 +113,87 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors"
           >
             <Plus className="w-4 h-4" />
-            <span>Catat Observasi Karakter</span>
+            <span>Catat Observasi Dimensi</span>
           </button>
         </div>
       </div>
 
-      {/* 10 Core Values Grid Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {CORE_VALUES.map(val => {
-          const logsForValue = characterLogs.filter(c => c.valueType === val.type);
-          const avgRating =
-            logsForValue.length > 0
-              ? logsForValue.reduce((a, b) => a + b.rating, 0) / logsForValue.length
-              : 5.0;
+      {/* Diagram 8 Dimensi Profil Lulusan SMK (Interactive Cards & Progress) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <Award className="w-4 h-4 text-emerald-600" />
+              Diagram Distribusi &amp; Indeks 8 Dimensi Profil Lulusan
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Klik salah satu dimensi untuk memfilter catatan observasi siswa di bawah.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedValueFilter !== 'Semua' && (
+              <button
+                onClick={() => setSelectedValueFilter('Semua')}
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                Reset Filter ({selectedValueFilter})
+              </button>
+            )}
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+              Target Industri: 4.5+
+            </span>
+          </div>
+        </div>
 
-          return (
-            <div
-              key={val.type}
-              onClick={() => setSelectedValueFilter(selectedValueFilter === val.type ? 'Semua' : val.type)}
-              className={`cursor-pointer p-3.5 rounded-xl border transition-all text-left ${
-                selectedValueFilter === val.type
-                  ? 'border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50/50'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-slate-800">{val.type}</span>
-                <span className="text-[11px] font-extrabold text-amber-500 flex items-center">
-                  ★ {avgRating.toFixed(1)}
-                </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {CORE_VALUES.map((val, idx) => {
+            const logsForValue = characterLogs.filter(c => c.valueType === val.type);
+            const avgRating =
+              logsForValue.length > 0
+                ? logsForValue.reduce((a, b) => a + b.rating, 0) / logsForValue.length
+                : 4.6;
+            const isSelected = selectedValueFilter === val.type;
+
+            return (
+              <div
+                key={val.type}
+                onClick={() => setSelectedValueFilter(isSelected ? 'Semua' : val.type)}
+                className={`cursor-pointer p-3.5 rounded-xl border transition-all text-left space-y-2 ${
+                  isSelected
+                    ? 'border-purple-500 ring-2 ring-purple-200 bg-purple-50/60 shadow-xs'
+                    : 'border-slate-200 bg-slate-50/60 hover:bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="text-xs font-bold text-slate-900 leading-tight">{val.type}</span>
+                  </div>
+                  <span className="text-[11px] font-black text-amber-500 shrink-0">
+                    ★ {avgRating.toFixed(1)}
+                  </span>
+                </div>
+                
+                <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">{val.desc}</p>
+                
+                <div className="space-y-1 pt-1">
+                  <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                    <div
+                      className={`h-full bg-gradient-to-r ${val.color} rounded-full transition-all`}
+                      style={{ width: `${(avgRating / 5) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] text-slate-400 font-medium">
+                    <span>{logsForValue.length} Observasi</span>
+                    <span>{((avgRating / 5) * 100).toFixed(0)}% Capaian</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-500 leading-tight">{val.desc}</p>
-              <span className="text-[10px] text-slate-400 mt-2 block">
-                {logsForValue.length} Observasi
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Filter and Action Bar */}
@@ -172,14 +214,14 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
           </select>
 
           <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold">
-            <span>Nilai Karakter:</span>
+            <span>Dimensi Profil:</span>
           </div>
           <select
             value={selectedValueFilter}
             onChange={e => setSelectedValueFilter(e.target.value)}
             className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-50 focus:bg-white focus:outline-none"
           >
-            <option value="Semua">Semua 10 Karakter</option>
+            <option value="Semua">Semua 8 Dimensi</option>
             {CORE_VALUES.map(v => (
               <option key={v.type} value={v.type}>{v.type}</option>
             ))}

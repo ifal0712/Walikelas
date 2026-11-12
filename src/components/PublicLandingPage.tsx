@@ -71,18 +71,16 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({
     { name: 'Bahasa Inggris', score: 83.8, kkm: 75 }
   ];
 
-  // 10 Character values average
+  // 8 Dimensi Profil Lulusan SMK (Standar Kurikulum Merdeka Kejuruan)
   const characterRatings = [
-    { name: 'Religius', rating: 4.8 },
-    { name: 'Kerja Sama', rating: 4.9 },
-    { name: 'Integritas', rating: 4.8 },
-    { name: 'Tanggung Jawab', rating: 4.7 },
-    { name: 'Kejujuran', rating: 4.7 },
-    { name: 'Kemandirian', rating: 4.6 },
-    { name: 'Kepedulian', rating: 4.7 },
-    { name: 'Kepemimpinan', rating: 4.5 },
-    { name: 'Kedisiplinan', rating: 4.4 },
-    { name: 'Percaya Diri', rating: 4.3 }
+    { name: 'Beriman & Berakhlak Mulia', rating: 4.8, desc: 'Spiritualitas & Integritas' },
+    { name: 'Berkebinekaan Global', rating: 4.7, desc: 'Toleransi & Wawasan Luas' },
+    { name: 'Bergotong Royong', rating: 4.9, desc: 'Kolaborasi & Kerja Tim' },
+    { name: 'Mandiri', rating: 4.6, desc: 'Regulasi & Inisiatif Belajar' },
+    { name: 'Bernalar Kritis', rating: 4.8, desc: 'Logika & Pemecahan Masalah' },
+    { name: 'Kreatif & Inovatif', rating: 4.7, desc: 'Daya Cipta & Solusi Terapan' },
+    { name: 'Disiplin & Etos Kerja', rating: 4.5, desc: 'SOP Industri & Tepat Waktu' },
+    { name: 'Kewirausahaan & Kepemimpinan', rating: 4.6, desc: 'Inisiatif & Daya Saing' }
   ];
 
   return (
@@ -128,7 +126,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({
               Hasil Belajar
             </a>
             <a href="#karakter" className="hover:text-emerald-700 transition-colors">
-              10 Karakter
+              8 Dimensi Karakter
             </a>
             <a href="#panduan-login" className="hover:text-emerald-700 transition-colors text-indigo-600">
               Akun Uji Coba
@@ -471,7 +469,7 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({
         {/* Baris 2: Diagram 10 Karakter Pelajar Pancasila & Portofolio Prestasi */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* DIAGRAM 3: 10 NILAI KARAKTER PANCASILA */}
+          {/* DIAGRAM 3: 8 DIMENSI PROFIL LULUSAN SMK */}
           <div id="karakter" className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-7 shadow-xs space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
@@ -480,24 +478,27 @@ export const PublicLandingPage: React.FC<PublicLandingPageProps> = ({
                 </div>
                 <div>
                   <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
-                    Diagram 10 Karakter Pelajar Pancasila
+                    Diagram 8 Dimensi Profil Lulusan SMK
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Skala observasi 1.0 s/d 5.0 (Berdasarkan pengamatan wali kelas &amp; guru)
+                    Standar Kelulusan Kurikulum Merdeka Kejuruan (Skala 1.0 s/d 5.0)
                   </p>
                 </div>
               </div>
               <span className="text-xs font-black text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-200">
-                Skor 4.6 / 5.0
+                Rata-rata 4.6 / 5.0
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {characterRatings.map((char, idx) => (
-                <div key={char.name} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                  <div className="flex justify-between font-bold text-slate-800 text-[11px]">
-                    <span>{idx + 1}. {char.name}</span>
-                    <span className="text-purple-700 font-black">{char.rating}/5.0</span>
+                <div key={char.name} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5 hover:border-purple-200 transition-colors">
+                  <div className="flex justify-between items-start font-bold text-slate-800 text-[11px]">
+                    <div>
+                      <span>{idx + 1}. {char.name}</span>
+                      <p className="text-[10px] text-slate-400 font-normal">{char.desc}</p>
+                    </div>
+                    <span className="text-purple-700 font-black shrink-0 ml-1">{char.rating}/5.0</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                     <div

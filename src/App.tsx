@@ -67,6 +67,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { StudentPortalView } from './components/StudentPortalView';
 import { StudentDataInputModal } from './components/StudentDataInputModal';
 import { PublicLandingPage } from './components/PublicLandingPage';
+import { SideNavigationGrid } from './components/SideNavigationGrid';
 
 const initialDemoData = getInitialSampleData('guest_teacher');
 
@@ -75,6 +76,7 @@ export default function App() {
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>('menu_hub');
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
+  const [isSideNavOpen, setIsSideNavOpen] = useState<boolean>(false);
 
   // Classroom State
   const [currentClass, setCurrentClass] = useState<Classroom | null>(initialDemoData.classroom);
@@ -195,7 +197,7 @@ export default function App() {
 
   // Student AI analysis trigger
   const handleOpenAIWithStudent = (student: Student) => {
-    const prompt = `Analisis komprehensif perkembangan siswa ${student.name} (NIS: ${student.nis}). Berikan ringkasan temuan akademik, presensi, 10 nilai karakter, catatan disiplin, dan rekomendasi tindak lanjut edukatif serta draf pesan untuk orang tua.`;
+    const prompt = `Analisis komprehensif perkembangan siswa ${student.name} (NIS: ${student.nis}). Berikan ringkasan temuan akademik, presensi, 8 dimensi profil lulusan SMK, catatan disiplin, dan rekomendasi tindak lanjut edukatif serta draf pesan untuk orang tua.`;
     handleOpenAIWithPrompt(prompt);
   };
 
@@ -206,7 +208,7 @@ export default function App() {
     { id: 'students', label: 'Data Siswa', icon: Users, badge: students.length },
     { id: 'attendance', label: 'Presensi', icon: CalendarCheck },
     { id: 'grades', label: 'Hasil Belajar', icon: GraduationCap },
-    { id: 'character', label: '10 Karakter', icon: Sparkles },
+    { id: 'character', label: '8 Dimensi Profil', icon: Sparkles },
     { id: 'discipline', label: 'Kedisiplinan', icon: Scale },
     { id: 'achievements', label: 'Prestasi', icon: Award, badge: achievements.length },
     { id: 'communication', label: 'Komunikasi Ortu', icon: MessageSquare },
@@ -344,6 +346,40 @@ Prestasi: ${achievements.length}
           onOpenLogin={handleOpenLoginWithPreset}
         />
 
+        {/* Side Navigation Grid (Tersedia di semua tampilan dan dapat disembunyikan/dimunculkan) */}
+        <SideNavigationGrid
+          isOpen={isSideNavOpen}
+          onToggle={() => setIsSideNavOpen(!isSideNavOpen)}
+          activeTab={activeTab}
+          onNavigateTab={tab => {
+            if (tab === 'landing') {
+              setIsSideNavOpen(false);
+              return;
+            }
+            setIsSideNavOpen(false);
+            handleOpenLoginWithPreset('guru');
+          }}
+          currentUser={effectiveUser}
+          isAdmin={false}
+          isAdminView={false}
+          onToggleAdminView={() => {
+            setIsSideNavOpen(false);
+            handleOpenLoginWithPreset('admin', 'alamifal@smkn1sidayu.sch.id', 'admin123');
+          }}
+          onOpenAI={() => {
+            setIsSideNavOpen(false);
+            handleOpenLoginWithPreset('guru');
+          }}
+          onOpenLogin={() => {
+            setIsSideNavOpen(false);
+            setIsLoginModalOpen(true);
+          }}
+          onLogout={handleLogout}
+          studentsCount={students.length}
+          achievementsCount={achievements.length}
+          welfareCount={welfareCases.filter(w => w.status !== 'Selesai').length}
+        />
+
         {/* Unified Login Modal ("Masuk Akun" dan "Login Siswa" terpadu dengan User & Password) */}
         <UnifiedLoginModal
           isOpen={isLoginModalOpen}
@@ -367,6 +403,45 @@ Prestasi: ${achievements.length}
   return (
     <div className="min-h-screen w-full bg-slate-50 flex flex-col font-['Plus_Jakarta_Sans',sans-serif] overflow-x-hidden">
       
+      {/* Side Navigation Grid (Tersedia di semua tampilan dan dapat disembunyikan/dimunculkan) */}
+      <SideNavigationGrid
+        isOpen={isSideNavOpen}
+        onToggle={() => setIsSideNavOpen(!isSideNavOpen)}
+        activeTab={activeTab}
+        onNavigateTab={tab => {
+          setIsSideNavOpen(false);
+          if (tab === 'landing') {
+            handleLogout();
+            return;
+          }
+          if (isAdminPortalView) setIsAdminPortalView(false);
+          setActiveTab(tab);
+        }}
+        currentUser={effectiveUser}
+        isAdmin={isEffectiveAdmin}
+        isAdminView={isAdminPortalView}
+        onToggleAdminView={show => {
+          setIsSideNavOpen(false);
+          setIsAdminPortalView(show);
+        }}
+        onOpenAI={() => {
+          setIsSideNavOpen(false);
+          setAiInitialPrompt('');
+          setIsAIModalOpen(true);
+        }}
+        onOpenLogin={() => {
+          setIsSideNavOpen(false);
+          setIsLoginModalOpen(true);
+        }}
+        onLogout={() => {
+          setIsSideNavOpen(false);
+          handleLogout();
+        }}
+        studentsCount={students.length}
+        achievementsCount={achievements.length}
+        welfareCount={welfareCases.filter(w => w.status !== 'Selesai').length}
+      />
+
       {/* Global Header */}
       <Header
         currentClass={currentClass}

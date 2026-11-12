@@ -228,41 +228,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   return (
     <div className="w-full space-y-6 animate-fadeIn font-['Plus_Jakarta_Sans',sans-serif]">
       
-      {/* Top Banner & Title */}
-      <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Portal Administrator &amp; Pengelolaan Pengguna SMKN 1 Sidayu</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Selamat Datang, {currentAdmin.displayName}
-            </h1>
-            <p className="text-xs sm:text-sm text-emerald-100/80 max-w-2xl leading-relaxed">
-              Panel kendali terpusat untuk Kepala Sekolah, Wakasek Kesiswaan, dan Administrator dalam mengelola akun pengguna (user &amp; password wali kelas, siswa, guru), memantau rombel, dan supervisi kesiswaan.
-            </p>
-          </div>
+      {/* Header Sederhana & Ringkas (Menggantikan kartu banner panjang) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+        <div>
+          <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-600" />
+            <span>Admin: {currentAdmin.displayName}</span>
+          </h2>
+          <p className="text-xs text-slate-500">
+            Kelola pengguna, akun wali kelas, rombel, dan supervisi kesiswaan
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => onOpenAIWithPrompt(`Tolong susun analisis eksekutif komprehensif tingkat sekolah untuk Kepala Sekolah dan Tim Pengawas SMKN 1 Sidayu, mencakup koordinasi seluruh rombel kejuruan, akun wali kelas aktif, rekap kasus kesejahteraan BK, dan audit kedisiplinan semester berjalan.`)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all"
-            >
-              <Sparkles className="w-4 h-4 text-slate-950" />
-              <span>Analisis Eksekutif AI</span>
-            </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onOpenAIWithPrompt(`Tolong susun analisis eksekutif singkat untuk Kepala Sekolah dan Pengawas SMKN 1 Sidayu mengenai kondisi kelas dan kesiswaan.`)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-all active:scale-95"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Analisis AI</span>
+          </button>
 
-            <button
-              onClick={onSwitchToTeacherMode}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold border border-white/20 backdrop-blur-sm transition-all"
-            >
-              <span>Buka Ruang Wali Kelas</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={onSwitchToTeacherMode}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-all active:scale-95"
+          >
+            <span>Ruang Wali Kelas</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 

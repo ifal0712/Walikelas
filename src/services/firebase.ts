@@ -33,7 +33,8 @@ import {
   WelfareCase,
   Classroom,
   UserProfile,
-  ManagedUser
+  ManagedUser,
+  CharacterValueType
 } from '../types';
 
 // 1. Initialize Firebase
@@ -432,9 +433,16 @@ export async function seedDemoDataForTeacher(teacherId: string): Promise<void> {
     });
   });
 
-  // Character Observations (10 Core Values)
-  const charValues: ('Religius' | 'Jujur' | 'Disiplin' | 'Tanggung Jawab' | 'Kerja Sama' | 'Kepedulian' | 'Kepemimpinan' | 'Percaya Diri' | 'Kemandirian' | 'Integritas')[] = [
-    'Religius', 'Jujur', 'Disiplin', 'Tanggung Jawab', 'Kerja Sama', 'Kepedulian', 'Kepemimpinan', 'Percaya Diri', 'Kemandirian', 'Integritas'
+  // Character Observations (8 Dimensi Profil Lulusan SMK)
+  const charValues: CharacterValueType[] = [
+    'Beriman & Berakhlak Mulia',
+    'Berkebinekaan Global',
+    'Bergotong Royong',
+    'Mandiri',
+    'Bernalar Kritis',
+    'Kreatif & Inovatif',
+    'Disiplin & Etos Kerja',
+    'Kewirausahaan & Kepemimpinan'
   ];
   let chIdx = 1;
   studentIds.forEach((sId, sIdx) => {
@@ -829,9 +837,9 @@ export function getInitialSampleData(teacherId: string = 'guest_teacher') {
     teacherId,
     studentId: st.id,
     date: '2026-11-08',
-    valueType: sIdx === 0 ? 'Kepemimpinan' : sIdx === 1 ? 'Kerja Sama' : sIdx === 2 ? 'Disiplin' : 'Tanggung Jawab',
+    valueType: (sIdx === 0 ? 'Kewirausahaan & Kepemimpinan' : sIdx === 1 ? 'Bergotong Royong' : sIdx === 2 ? 'Disiplin & Etos Kerja' : sIdx === 3 ? 'Kreatif & Inovatif' : sIdx === 4 ? 'Bernalar Kritis' : 'Beriman & Berakhlak Mulia') as CharacterValueType,
     rating: sIdx === 2 ? 3 : 5,
-    notes: sIdx === 2 ? 'Perlu peningkatan disiplin waktu' : 'Teladan positif kelas',
+    notes: sIdx === 2 ? 'Perlu peningkatan disiplin waktu dan SOP lab' : 'Teladan positif kelas dalam etos kerja dan kolaborasi',
     createdAt: now,
     updatedAt: now
   }));

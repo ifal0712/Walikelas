@@ -64,6 +64,15 @@ export interface GradeRecord {
 }
 
 export type CharacterValueType =
+  | 'Beriman & Berakhlak Mulia'
+  | 'Berkebinekaan Global'
+  | 'Bergotong Royong'
+  | 'Mandiri'
+  | 'Bernalar Kritis'
+  | 'Kreatif & Inovatif'
+  | 'Disiplin & Etos Kerja'
+  | 'Kewirausahaan & Kepemimpinan'
+  // Fallbacks for compatibility
   | 'Religius'
   | 'Jujur'
   | 'Disiplin'

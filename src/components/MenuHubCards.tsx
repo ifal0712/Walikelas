@@ -129,11 +129,11 @@ export const MenuHubCards: React.FC<MenuHubCardsProps> = ({
         },
         {
           id: 'character',
-          title: '10 Karakter',
-          hoverText: 'Catat karakter Pancasila', // Tepat 3 kata
+          title: '8 Dimensi Karakter',
+          hoverText: 'Pantau dimensi profil', // Tepat 3 kata
           icon: Sparkles,
           color: 'from-purple-600 to-violet-600',
-          badgeText: '10 Nilai Profil',
+          badgeText: '8 Dimensi Profil',
           badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
           priority: 5
         },
