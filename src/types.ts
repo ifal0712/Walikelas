@@ -20,6 +20,11 @@ export interface Student {
   healthHistory?: string;
   talentsAndInterests?: string;
   specialNotes?: string;
+  dreams?: string;
+  fatherName?: string;
+  motherName?: string;
+  filledByStudent?: boolean;
+  selfSubmissionDate?: string;
   status: StudentStatus;
   createdAt: string;
   updatedAt?: string;

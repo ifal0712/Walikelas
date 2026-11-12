@@ -44,7 +44,8 @@ import {
   removeRecord,
   subscribeToTeacherData,
   seedDemoDataForTeacher,
-  isUserAdmin
+  isUserAdmin,
+  getInitialSampleData
 } from './services/firebase';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -63,6 +64,8 @@ import { AdminPortal } from './components/AdminPortal';
 import { MenuHubCards } from './components/MenuHubCards';
 import { MobileBottomNav } from './components/MobileBottomNav';
 
+const initialDemoData = getInitialSampleData('guest_teacher');
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
@@ -70,29 +73,18 @@ export default function App() {
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
 
   // Classroom State
-  const [currentClass, setCurrentClass] = useState<Classroom | null>({
-    id: 'cls_rpl1',
-    teacherId: 'guest_teacher',
-    name: 'Kelas XI RPL 1',
-    grade: 'XI (Sebelas)',
-    academicYear: '2026/2027',
-    semester: 'Ganjil',
-    schoolName: 'SMKN 1 Sidayu',
-    major: 'Rekayasa Perangkat Lunak',
-    targetAttendanceRate: 90,
-    createdAt: new Date().toISOString()
-  });
+  const [currentClass, setCurrentClass] = useState<Classroom | null>(initialDemoData.classroom);
 
-  // Core Data Collections
-  const [students, setStudents] = useState<Student[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [grades, setGrades] = useState<GradeRecord[]>([]);
-  const [characterLogs, setCharacterLogs] = useState<CharacterLog[]>([]);
-  const [disciplineLogs, setDisciplineLogs] = useState<DisciplineLog[]>([]);
-  const [achievements, setAchievements] = useState<AchievementRecord[]>([]);
-  const [communications, setCommunications] = useState<CommunicationLog[]>([]);
-  const [reports, setReports] = useState<ClassReport[]>([]);
-  const [welfareCases, setWelfareCases] = useState<WelfareCase[]>([]);
+  // Core Data Collections preloaded with sample data
+  const [students, setStudents] = useState<Student[]>(initialDemoData.students);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(initialDemoData.attendance);
+  const [grades, setGrades] = useState<GradeRecord[]>(initialDemoData.grades);
+  const [characterLogs, setCharacterLogs] = useState<CharacterLog[]>(initialDemoData.characterLogs);
+  const [disciplineLogs, setDisciplineLogs] = useState<DisciplineLog[]>(initialDemoData.disciplineLogs);
+  const [achievements, setAchievements] = useState<AchievementRecord[]>(initialDemoData.achievements);
+  const [communications, setCommunications] = useState<CommunicationLog[]>(initialDemoData.communications);
+  const [reports, setReports] = useState<ClassReport[]>(initialDemoData.reports);
+  const [welfareCases, setWelfareCases] = useState<WelfareCase[]>(initialDemoData.welfareCases);
 
   // Modals & Admin State
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -133,10 +125,13 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 2. Realtime Data Sync from Firestore
+  // 2. Realtime Data Sync from Firestore (only active when signed in to prevent permission error)
   useEffect(() => {
-    const teacherId = currentUser?.id || 'guest_teacher';
+    if (!auth.currentUser) {
+      return;
+    }
 
+    const teacherId = currentUser?.id || auth.currentUser.uid;
     const unsubs: (() => void)[] = [];
 
     try {
@@ -428,13 +423,27 @@ Prestasi: ${achievements.length}
             achievements={achievements}
             welfareCases={welfareCases}
             onSaveStudent={st => {
+              setStudents(prev => {
+                const idx = prev.findIndex(s => s.id === st.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = st;
+                  return updated;
+                }
+                return [...prev, st];
+              });
               saveRecord('students', { ...st, teacherId: currentUser?.id || 'guest_teacher' });
             }}
-            onDeleteStudent={id => removeRecord('students', id)}
+            onDeleteStudent={id => {
+              setStudents(prev => prev.filter(s => s.id !== id));
+              removeRecord('students', id);
+            }}
             onOpenAIWithStudent={handleOpenAIWithStudent}
             selectedStudentModal={selectedStudentForModal}
             onCloseStudentModal={() => setSelectedStudentForModal(null)}
             onOpenStudentModal={st => setSelectedStudentForModal(st)}
+            currentUser={effectiveUser}
+            onOpenAIWithPrompt={handleOpenAIWithPrompt}
           />
         )}
 
@@ -444,6 +453,11 @@ Prestasi: ${achievements.length}
             students={students}
             attendance={attendance}
             onSaveAttendance={records => {
+              setAttendance(prev => {
+                const map = new Map(prev.map(a => [a.id, a]));
+                records.forEach(r => map.set(r.id, r));
+                return Array.from(map.values());
+              });
               const teacherId = currentUser?.id || 'guest_teacher';
               records.forEach(r => saveRecord('attendance', { ...r, teacherId }));
             }}
@@ -457,9 +471,21 @@ Prestasi: ${achievements.length}
             students={students}
             grades={grades}
             onSaveGrade={g => {
+              setGrades(prev => {
+                const idx = prev.findIndex(item => item.id === g.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = g;
+                  return updated;
+                }
+                return [...prev, g];
+              });
               saveRecord('grades', { ...g, teacherId: currentUser?.id || 'guest_teacher' });
             }}
-            onDeleteGrade={id => removeRecord('grades', id)}
+            onDeleteGrade={id => {
+              setGrades(prev => prev.filter(g => g.id !== id));
+              removeRecord('grades', id);
+            }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
           />
         )}
@@ -470,6 +496,15 @@ Prestasi: ${achievements.length}
             students={students}
             characterLogs={characterLogs}
             onSaveCharacterLog={c => {
+              setCharacterLogs(prev => {
+                const idx = prev.findIndex(item => item.id === c.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = c;
+                  return updated;
+                }
+                return [...prev, c];
+              });
               saveRecord('characterLogs', { ...c, teacherId: currentUser?.id || 'guest_teacher' });
             }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
@@ -482,6 +517,15 @@ Prestasi: ${achievements.length}
             students={students}
             disciplineLogs={disciplineLogs}
             onSaveDisciplineLog={d => {
+              setDisciplineLogs(prev => {
+                const idx = prev.findIndex(item => item.id === d.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = d;
+                  return updated;
+                }
+                return [...prev, d];
+              });
               saveRecord('disciplineLogs', { ...d, teacherId: currentUser?.id || 'guest_teacher' });
             }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
@@ -494,9 +538,21 @@ Prestasi: ${achievements.length}
             students={students}
             achievements={achievements}
             onSaveAchievement={a => {
+              setAchievements(prev => {
+                const idx = prev.findIndex(item => item.id === a.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = a;
+                  return updated;
+                }
+                return [...prev, a];
+              });
               saveRecord('achievements', { ...a, teacherId: currentUser?.id || 'guest_teacher' });
             }}
-            onDeleteAchievement={id => removeRecord('achievements', id)}
+            onDeleteAchievement={id => {
+              setAchievements(prev => prev.filter(a => a.id !== id));
+              removeRecord('achievements', id);
+            }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
           />
         )}
@@ -507,6 +563,15 @@ Prestasi: ${achievements.length}
             students={students}
             communications={communications}
             onSaveCommunication={c => {
+              setCommunications(prev => {
+                const idx = prev.findIndex(item => item.id === c.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = c;
+                  return updated;
+                }
+                return [...prev, c];
+              });
               saveRecord('communications', { ...c, teacherId: currentUser?.id || 'guest_teacher' });
             }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
@@ -519,6 +584,15 @@ Prestasi: ${achievements.length}
             students={students}
             welfareCases={welfareCases}
             onSaveWelfareCase={w => {
+              setWelfareCases(prev => {
+                const idx = prev.findIndex(item => item.id === w.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = w;
+                  return updated;
+                }
+                return [...prev, w];
+              });
               saveRecord('welfareCases', { ...w, teacherId: currentUser?.id || 'guest_teacher' });
             }}
             onOpenAIWithPrompt={handleOpenAIWithPrompt}
@@ -546,6 +620,15 @@ Prestasi: ${achievements.length}
             violationsCount={disciplineLogs.filter(d => d.category === 'Pelanggaran' || d.category === 'Teguran').length}
             welfareCasesCount={welfareCases.filter(w => w.status !== 'Selesai').length}
             onSaveReport={rep => {
+              setReports(prev => {
+                const idx = prev.findIndex(item => item.id === rep.id);
+                if (idx >= 0) {
+                  const updated = [...prev];
+                  updated[idx] = rep;
+                  return updated;
+                }
+                return [...prev, rep];
+              });
               saveRecord('reports', { ...rep, teacherId: currentUser?.id || 'guest_teacher' });
             }}
           />
@@ -557,7 +640,7 @@ Prestasi: ${achievements.length}
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-xs text-slate-500 text-center print:hidden">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>© 2026 Sistem Manajemen Wali Kelas Profesional • Kemendikbudristek Edu Standard</p>
+          <p>© 2026 Sistem Manajemen Wali Kelas Profesional • SMKN 1 Sidayu</p>
           <p className="flex items-center gap-1.5 text-slate-400">
             <CloudCheck className="w-4 h-4 text-emerald-600" />
             <span>Didukung Firebase Firestore Realtime & Google Gemini AI</span>

@@ -158,6 +158,10 @@ export async function saveRecord<T extends { id: string; teacherId: string }>(
   collectionName: string,
   record: T
 ): Promise<void> {
+  // If not authenticated via Firebase Auth, do not call Firestore to prevent permission errors
+  if (!auth.currentUser) {
+    return;
+  }
   try {
     const docRef = doc(db, collectionName, record.id);
     await setDoc(docRef, record, { merge: true });
@@ -167,6 +171,9 @@ export async function saveRecord<T extends { id: string; teacherId: string }>(
 }
 
 export async function removeRecord(collectionName: string, id: string): Promise<void> {
+  if (!auth.currentUser) {
+    return;
+  }
   try {
     const docRef = doc(db, collectionName, id);
     await deleteDoc(docRef);
@@ -175,12 +182,17 @@ export async function removeRecord(collectionName: string, id: string): Promise<
   }
 }
 
-// 6. Realtime Collection Listeners
+// 6. Realtime Collection Listeners (Only attached if user is authenticated)
 export function subscribeToTeacherData<T>(
   collectionName: string,
   teacherId: string,
   callback: (data: T[]) => void
 ): () => void {
+  // Direct adherence to Skill: Only attach onSnapshot listeners if auth is ready and user is authenticated
+  if (!auth.currentUser) {
+    return () => {};
+  }
+
   const q = query(collection(db, collectionName), where('teacherId', '==', teacherId));
   return onSnapshot(
     q,
@@ -568,4 +580,387 @@ export async function seedDemoDataForTeacher(teacherId: string): Promise<void> {
   });
 
   await batch.commit();
+}
+
+// Helper to provide realistic initial data for offline / unauthenticated state
+export function getInitialSampleData(teacherId: string = 'guest_teacher') {
+  const now = new Date().toISOString();
+  const classId = `cls_${teacherId.substring(0, 8)}_rpl1`;
+
+  const classroom: Classroom = {
+    id: classId,
+    teacherId,
+    name: 'Kelas XI RPL 1',
+    grade: 'XI (Sebelas)',
+    academicYear: '2026/2027',
+    semester: 'Ganjil',
+    schoolName: 'SMKN 1 Sidayu',
+    major: 'Rekayasa Perangkat Lunak',
+    targetAttendanceRate: 90,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  const students: Student[] = [
+    {
+      id: `std_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      nis: '20261101',
+      nisn: '0089123401',
+      name: 'Ahmad Zaky Maulana',
+      gender: 'L',
+      birthPlace: 'Gresik',
+      birthDate: '2009-04-12',
+      address: 'Jl. Raya Sidayu No. 45, Gresik',
+      phone: '081234567801',
+      emergencyContact: '081234567802 (Ayah)',
+      parentName: 'H. Sudirman, S.Pd.',
+      parentPhone: '081234567802',
+      parentJob: 'PNS / Guru',
+      healthHistory: 'Alergi dingin ringan, kondisi prima',
+      talentsAndInterests: 'Pemrograman Web, Algoritma, Bulutangkis',
+      specialNotes: 'Ketua kelas, aktif berdiskusi dan bertanggung jawab tinggi',
+      filledByStudent: true,
+      dreams: 'Fullstack Software Engineer',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `std_${teacherId.substring(0, 6)}_2`,
+      classId,
+      teacherId,
+      nis: '20261102',
+      nisn: '0089123402',
+      name: 'Siti Nurhaliza Putri',
+      gender: 'P',
+      birthPlace: 'Lamongan',
+      birthDate: '2009-08-20',
+      address: 'Desa Wadeng RT 02 RW 03, Sidayu',
+      phone: '081234567803',
+      emergencyContact: '081234567804 (Ibu)',
+      parentName: 'Hj. Aminah',
+      parentPhone: '081234567804',
+      parentJob: 'Wiraswasta / Pedagang',
+      healthHistory: 'Riwayat asma ringan saat kelelahan',
+      talentsAndInterests: 'UI/UX Design, Desain Grafis, Storytelling',
+      specialNotes: 'Sangat teliti dalam tugas projek, perlu dorongan berbicara di depan umum',
+      filledByStudent: true,
+      dreams: 'Product Designer',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `std_${teacherId.substring(0, 6)}_3`,
+      classId,
+      teacherId,
+      nis: '20261103',
+      nisn: '0089123403',
+      name: 'Fajar Ramadhan Pratama',
+      gender: 'L',
+      birthPlace: 'Surabaya',
+      birthDate: '2008-11-15',
+      address: 'Perum GKB Blok AB No. 12, Manyar, Gresik',
+      phone: '081234567805',
+      emergencyContact: '081234567806 (Kakak)',
+      parentName: 'Bambang Irawan',
+      parentPhone: '081234567806',
+      parentJob: 'Karyawan Swasta Industri',
+      healthHistory: 'Sehat',
+      talentsAndInterests: 'Jaringan Komputer, Futsal, Musik Akustik',
+      specialNotes: 'Kehadiran menurun minggu ini (alfa 2x), terindikasi sering begadang gaming',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `std_${teacherId.substring(0, 6)}_4`,
+      classId,
+      teacherId,
+      nis: '20261104',
+      nisn: '0089123404',
+      name: 'Dinda Putri Lestari',
+      gender: 'P',
+      birthPlace: 'Gresik',
+      birthDate: '2009-02-05',
+      address: 'Jl. Pahlawan No. 8, Sedagaran, Sidayu',
+      phone: '081234567807',
+      emergencyContact: '081234567808 (Ibu)',
+      parentName: 'Endang Sulistiyowati',
+      parentPhone: '081234567808',
+      parentJob: 'Ibu Rumah Tangga',
+      healthHistory: 'Sehat',
+      talentsAndInterests: 'Matematika Terapan, Basis Data, Literasi Puisi',
+      specialNotes: 'Prestasi akademik tertinggi di kelas, ramah dan suka membantu teman',
+      filledByStudent: true,
+      dreams: 'Data Scientist',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `std_${teacherId.substring(0, 6)}_5`,
+      classId,
+      teacherId,
+      nis: '20261105',
+      nisn: '0089123405',
+      name: 'Rayhan Kurniawan Saputra',
+      gender: 'L',
+      birthPlace: 'Gresik',
+      birthDate: '2009-06-30',
+      address: 'Desa Golokan RT 04 RW 01, Sidayu',
+      phone: '081234567809',
+      emergencyContact: '081234567810 (Paman)',
+      parentName: 'Joko Susilo',
+      parentPhone: '081234567810',
+      parentJob: 'Pelaut / Teknisi Mesin',
+      healthHistory: 'Sehat',
+      talentsAndInterests: 'Hardware, Robotika IoT, Silat',
+      specialNotes: 'Tinggal bersama nenek, tampak murung akhir-akhir ini dan nilai ulangan menurun',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `std_${teacherId.substring(0, 6)}_6`,
+      classId,
+      teacherId,
+      nis: '20261106',
+      nisn: '0089123406',
+      name: 'Nabila Zahra Syahrini',
+      gender: 'P',
+      birthPlace: 'Tuban',
+      birthDate: '2009-10-18',
+      address: 'Jl. Deandels KM 32, Ujungpangkah',
+      phone: '081234567811',
+      emergencyContact: '081234567812 (Ayah)',
+      parentName: 'Drs. H. Mulyadi',
+      parentPhone: '081234567812',
+      parentJob: 'PNS Pemkab',
+      healthHistory: 'Miopia (menggunakan kacamata -1.5)',
+      talentsAndInterests: 'Public Speaking, Bahasa Inggris, Debat Siswa',
+      specialNotes: 'Anggota OSIS aktif, keterampilan komunikasi sangat menonjol',
+      filledByStudent: true,
+      dreams: 'Diplomat / Public Relations',
+      status: 'Aktif',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  const dates = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10'];
+  const attendance: AttendanceRecord[] = [];
+  let attIdx = 1;
+
+  students.forEach((st, sIdx) => {
+    dates.forEach(d => {
+      let status: 'Hadir' | 'Izin' | 'Sakit' | 'Alfa' | 'Terlambat' = 'Hadir';
+      let lateMinutes = 0;
+      let notes = '';
+
+      if (sIdx === 2) {
+        if (d === '2026-11-04' || d === '2026-11-09') {
+          status = 'Alfa';
+          notes = 'Tanpa keterangan saat jam pertama';
+        } else if (d === '2026-11-07') {
+          status = 'Terlambat';
+          lateMinutes = 25;
+          notes = 'Terlambat 25 menit karena ban bocor';
+        }
+      } else if (sIdx === 1 && d === '2026-11-05') {
+        status = 'Sakit';
+        notes = 'Surat dokter: flu';
+      } else if (sIdx === 4 && d === '2026-11-08') {
+        status = 'Izin';
+        notes = 'Izin keperluan keluarga mendadak';
+      }
+
+      attendance.push({
+        id: `att_${teacherId.substring(0, 6)}_${attIdx++}`,
+        classId,
+        teacherId,
+        studentId: st.id,
+        date: d,
+        status,
+        lateMinutes,
+        notes,
+        createdAt: now,
+        updatedAt: now
+      });
+    });
+  });
+
+  const subjects = ['Pemrograman Web', 'Basis Data', 'Matematika Terapan', 'Bahasa Indonesia', 'Bahasa Inggris'];
+  const grades: GradeRecord[] = [];
+  let grIdx = 1;
+
+  students.forEach((st, sIdx) => {
+    subjects.forEach(sub => {
+      let baseScore = 85;
+      if (sIdx === 3) baseScore = 94;
+      if (sIdx === 2) baseScore = 72;
+      if (sIdx === 4) baseScore = 76;
+
+      const score = Math.min(100, Math.max(65, Math.round(baseScore + (sIdx % 3))));
+      grades.push({
+        id: `grd_${teacherId.substring(0, 6)}_${grIdx++}`,
+        classId,
+        teacherId,
+        studentId: st.id,
+        subject: sub,
+        type: 'PTS',
+        score,
+        semester: 'Ganjil',
+        date: '2026-10-15',
+        topic: 'Evaluasi Tengah Semester Ganjil',
+        notes: score >= 75 ? 'Tuntas KKM' : 'Perlu Remedial',
+        createdAt: now,
+        updatedAt: now
+      });
+    });
+  });
+
+  const characterLogs: CharacterLog[] = students.map((st, sIdx) => ({
+    id: `chr_${teacherId.substring(0, 6)}_${sIdx + 1}`,
+    classId,
+    teacherId,
+    studentId: st.id,
+    date: '2026-11-08',
+    valueType: sIdx === 0 ? 'Kepemimpinan' : sIdx === 1 ? 'Kerja Sama' : sIdx === 2 ? 'Disiplin' : 'Tanggung Jawab',
+    rating: sIdx === 2 ? 3 : 5,
+    notes: sIdx === 2 ? 'Perlu peningkatan disiplin waktu' : 'Teladan positif kelas',
+    createdAt: now,
+    updatedAt: now
+  }));
+
+  const disciplineLogs: DisciplineLog[] = [
+    {
+      id: `dsc_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      studentId: students[2].id,
+      date: '2026-11-04',
+      category: 'Pelanggaran',
+      level: 'Ringan',
+      description: 'Tidak hadir tanpa keterangan (Alfa) pada jam pelajaran pertama dan kedua',
+      followUpAction: 'Dialog reflektif edukatif dengan wali kelas',
+      points: 5,
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `dsc_${teacherId.substring(0, 6)}_2`,
+      classId,
+      teacherId,
+      studentId: students[0].id,
+      date: '2026-11-02',
+      category: 'Penghargaan',
+      level: 'Ringan',
+      description: 'Inisiatif mengoordinasikan teman sekelas dalam kebersihan ruang kelas',
+      followUpAction: 'Pemberian sertifikat bintang teladan kelas',
+      points: 15,
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  const achievements: AchievementRecord[] = [
+    {
+      id: `ach_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      studentId: students[0].id,
+      date: '2026-10-28',
+      category: 'Akademik',
+      title: 'Lomba Kompetensi Siswa (LKS) Bidang Web Technologies',
+      rank: 'Juara 2',
+      level: 'Kabupaten/Kota',
+      notes: 'Mewakili sekolah di tingkat provinsi',
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: `ach_${teacherId.substring(0, 6)}_2`,
+      classId,
+      teacherId,
+      studentId: students[5].id,
+      date: '2026-10-10',
+      category: 'Non Akademik',
+      title: 'English Speech Contest Hari Sumpah Pemuda',
+      rank: 'Juara 1',
+      level: 'Kabupaten/Kota',
+      notes: 'Penampilan memukau dalam topik Pelajar Digital',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  const welfareCases: WelfareCase[] = [
+    {
+      id: `wel_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      studentId: students[4].id,
+      date: '2026-11-06',
+      triggerCategory: 'Penurunan Motivasi',
+      severity: 'Perlu Perhatian',
+      indications: 'Tampak sering melamun di kelas, tugas kelompok belum terselesaikan',
+      actionRecommendation: 'Rujukan Guru BK',
+      status: 'Aktif',
+      notes: 'Dijadwalkan konseling suportif bersama Guru BK.',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  const communications: CommunicationLog[] = [
+    {
+      id: `com_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      studentId: students[0].id,
+      date: '2026-11-01',
+      channel: 'WhatsApp',
+      recipient: 'Orang Tua',
+      category: 'Apresiasi',
+      content: 'Assalamu’alaikum Bapak H. Sudirman. Kami sampaikan apresiasi atas kedisiplinan dan keberhasilan ananda Zaky meraih Juara 2 LKS Web Tech.',
+      status: 'Terkirim',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  const reports: ClassReport[] = [
+    {
+      id: `rep_${teacherId.substring(0, 6)}_1`,
+      classId,
+      teacherId,
+      periodType: 'Bulanan',
+      periodDate: 'Oktober 2026',
+      title: 'Laporan Perkembangan Kelas XI RPL 1 - Bulan Oktober 2026',
+      summary: 'Secara umum kondisi kelas berjalan kondusif dengan rata-rata kehadiran 95.2%.',
+      achievementsSummary: 'Juara 2 LKS Web Tech Kabupaten (Ahmad Zaky), Juara 1 Speech Contest (Nabila Zahra).',
+      challenges: 'Terdapat 2 siswa yang membutuhkan pendampingan khusus manajemen waktu.',
+      dataAnalysis: 'Rata-rata nilai PTS kelas mencapai 84.5. Ketuntasan belajar 90%.',
+      followUp: 'Koordinasi dengan Guru BK dan pertemuan refleksi wali kelas.',
+      recommendations: 'Mengusulkan pengadaan modul praktikum tambahan.',
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  return {
+    classroom,
+    students,
+    attendance,
+    grades,
+    characterLogs,
+    disciplineLogs,
+    achievements,
+    welfareCases,
+    communications,
+    reports
+  };
 }
